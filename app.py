@@ -75,7 +75,7 @@ def make_plot(selected_team):
 
     # Titles
     ax.text(-0.15, 1.20,
-            f"{selected_team.upper()} — TEAM PERFORMANCE ANALYSIS",
+            f"{selected_team.upper()} — TEAM ANALYSIS",
             transform=ax.transAxes, color="white",
             fontsize=24, fontweight="bold")
 
@@ -117,4 +117,5 @@ if st.button("💾 Save PNG"):
     filename = f"{selected_team.replace(' ', '_')}_Team_Performance.png"
     save_path = os.path.join(OUTPUT_FOLDER, filename)
     fig.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig.get_facecolor())
+
     st.success(f"Saved: {save_path}")
