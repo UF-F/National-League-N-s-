@@ -3,15 +3,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import streamlit as st
-from matplotlib.offsetbox import OffsetImage, AnnotationBbox
-import matplotlib.image as mpimg
 
 # -------------------- STREAMLIT PAGE SETUP --------------------
 st.set_page_config(page_title="Team Performance", layout="wide")
 
 # -------------------- FILE PATHS --------------------
 DATA_FILE = "League_Team_Stats (5).csv"
-LOGO_FILE = "Dagenham_and_Redbridge_FC_crest.svg.png"
 OUTPUT_FOLDER = "outputs"
 
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
@@ -84,17 +81,6 @@ def make_plot(selected_team):
             "Data: @Statsbomb | Graphic: @Neil_barretto",
             transform=ax.transAxes, color="white", fontsize=11)
 
-    # Logo
-    if os.path.exists(LOGO_FILE):
-        try:
-            logo = mpimg.imread(LOGO_FILE)
-            imagebox = OffsetImage(logo, zoom=0.25)
-            ab = AnnotationBbox(imagebox, (0.97, 1.15),
-                                xycoords="axes fraction", frameon=False)
-            ax.add_artist(ab)
-        except:
-            pass
-
     # Legend
     ax.text(0.15, 1.05, "■ Above League Avg",
             transform=ax.transAxes, color="#2ecc71", fontsize=10)
@@ -119,4 +105,5 @@ if st.button("💾 Save PNG"):
     fig.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig.get_facecolor())
 
     st.success(f"Saved: {save_path}")
+
 
