@@ -11,8 +11,8 @@ st.set_page_config(page_title="Football Dashboard", layout="wide")
 
 # ---------------- FILE PATHS ----------------
 TEAM_FILE = "League_Team_Stats (5).csv"
-PLAYER_FILE = "/content/Daggers (Per90).csv"
-PLAYER_PCT_FILE = "/content/Daggers (Percentile).csv"
+PLAYER_FILE = "Daggers (Per90).csv"
+PLAYER_PCT_FILE = "Daggers (Percentile).csv"
 OUTPUT_FOLDER = "outputs"
 
 import os
@@ -235,5 +235,6 @@ else:
                  fontsize=18, fontweight="bold", ha="right", va="center", color="black")
 
         st.pyplot(fig)
+
 
     draw_player_dashboard(selected_player, selected_role)
