@@ -108,12 +108,16 @@ radar_metrics = {
 
 # ---------------- PAGE TITLE + DESCRIPTION ----------------
 st.title("🏆 National League South Dashboard 25/26")
-st.write(
-    "This dashboard provides team-level percentile comparisons vs league average and individual player percentile profiles across key performance metrics, using official StatsBomb-style event data for the 2025/26 National League South season.\n
-    
-    How to use:
-Select Team Dashboard or Player Dashboard using the tabs above. Use the dropdown menus to choose a team and player. Team charts compare percentile ranks vs league average, while player profiles show percentile performance by role."
-)
+
+st.write("""
+This dashboard provides team-level percentile comparisons vs league average and individual player percentile profiles across key performance metrics, using official StatsBomb-style event data for the 2025/26 National League South season.
+
+**How to use:**
+- Select **Team Dashboard** or **Player Dashboard** using the tabs above.
+- Use the dropdown menus to choose a team and player.
+- Team charts compare percentile ranks vs league average.
+- Player profiles show percentile performance by role.
+""")
 
 # ---------------- TABS ----------------
 tab1, tab2 = st.tabs(["📊 Team Dashboard", "👤 Player Dashboard"])
@@ -368,6 +372,7 @@ with tab2:
         save_path = os.path.join(OUTPUT_FOLDER, filename)
         fig_player.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig_player.get_facecolor())
         st.success(f"Saved: {save_path}")
+
 
 
 
