@@ -37,7 +37,7 @@ TEXT = "black"
 
 GREEN = "#008000"
 RED = "#992514"
-LEAGUE_MARKER = "#0047FF"   # BLUE instead of yellow
+LEAGUE_MARKER = "#000000"   # BLUE instead of yellow
 
 # ---------------- POSITION → ROLE LOGIC ----------------
 def detect_role(primary_pos, secondary_pos=None):
@@ -366,4 +366,5 @@ with tab2:
         save_path = os.path.join(OUTPUT_FOLDER, filename)
         fig_player.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig_player.get_facecolor())
         st.success(f"Saved: {save_path}")
+
 
