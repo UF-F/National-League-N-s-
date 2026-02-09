@@ -37,7 +37,7 @@ TEXT = "black"
 
 GREEN = "#008000"
 RED = "#992514"
-LEAGUE_MARKER = "#000000"   # BLUE instead of yellow
+LEAGUE_MARKER = "#000000"   # marker colour
 
 # ---------------- POSITION → ROLE LOGIC ----------------
 def detect_role(primary_pos, secondary_pos=None):
@@ -152,7 +152,7 @@ with tab1:
             linewidth=0.8
         )
 
-        # League average markers (BLUE)
+        # League average markers
         for i, avg in enumerate(league_values):
             ax.plot(avg, i, marker="D", markersize=7, color=LEAGUE_MARKER, zorder=3)
 
@@ -243,7 +243,7 @@ with tab2:
         auto_role = detect_role(row90["Primary Position"], row90["Secondary Position"])
         role = auto_role if role_choice == "Auto" else role_choice
 
-        # (Optional) if GK detected but no GK radar exists
+        # If GK detected but no GK radar exists
         if role == "Goalkeeper":
             role = "Defensive"
 
@@ -266,6 +266,18 @@ with tab2:
         ax1.barh(y - h/2, [goals, assists], height=h, color="black", label="Actual")
         ax1.barh(y + h/2, [xg, xa], height=h, color="#555555", label="Expected")
 
+        # --- VALUE LABELS (Actual + Expected) ---
+        actual_vals = [goals, assists]
+        expected_vals = [xg, xa]
+
+        for i, val in enumerate(actual_vals):
+            ax1.text(val + 0.05, y[i] - h/2, f"{val:.2f}", va="center", ha="left",
+                     fontsize=11, color=TEXT)
+
+        for i, val in enumerate(expected_vals):
+            ax1.text(val + 0.05, y[i] + h/2, f"{val:.2f}", va="center", ha="left",
+                     fontsize=11, color=TEXT)
+
         ax1.set_yticks(y)
         ax1.set_yticklabels(["Goals", "Assists"], color=TEXT)
         ax1.invert_yaxis()
@@ -283,6 +295,12 @@ with tab2:
         y2 = np.arange(len(comp_labels))
 
         ax2.barh(y2, comp_vals, color="black")
+
+        # --- VALUE LABELS (% values) ---
+        for i, val in enumerate(comp_vals):
+            ax2.text(val + 1, i, f"{val:.1f}%", va="center", ha="left",
+                     fontsize=11, color=TEXT)
+
         ax2.set_yticks(y2)
         ax2.set_yticklabels(comp_labels, color=TEXT)
         ax2.set_xlim(0, 100)
@@ -372,8 +390,3 @@ with tab2:
         save_path = os.path.join(OUTPUT_FOLDER, filename)
         fig_player.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig_player.get_facecolor())
         st.success(f"Saved: {save_path}")
-
-
-
-
-
