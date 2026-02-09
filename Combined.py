@@ -31,7 +31,15 @@ title_font = FontManager(
     "https://raw.githubusercontent.com/google/fonts/main/ofl/bebasneue/BebasNeue-Regular.ttf"
 )
 
-# ---------------- POSITION → ROLE LOGIC (AUTO WORKS FOR BIG DATASETS) ----------------
+# ---------------- THEME ----------------
+BG = "#ede8d0"
+TEXT = "black"
+
+GREEN = "#2ecc71"
+RED = "#e00614"
+LEAGUE_MARKER = "#0047FF"   # BLUE instead of yellow
+
+# ---------------- POSITION → ROLE LOGIC ----------------
 def detect_role(primary_pos, secondary_pos=None):
     positions = []
     if pd.notna(primary_pos):
@@ -105,7 +113,7 @@ st.write(
     "using StatsBomb-style metrics."
 )
 
-# ---------------- TABS (CLICK HEADINGS) ----------------
+# ---------------- TABS ----------------
 tab1, tab2 = st.tabs(["📊 Team Dashboard", "👤 Player Dashboard"])
 
 
@@ -122,58 +130,84 @@ with tab1:
         team_values = team_row[team_metrics].values.astype(float)
         league_values = league_row[team_metrics].values.astype(float)
 
-        colors = ["#2ecc71" if t >= l else "#e00614"
-                  for t, l in zip(team_values, league_values)]
+        colors = [GREEN if t >= l else RED for t, l in zip(team_values, league_values)]
 
         fig, ax = plt.subplots(figsize=(13, 7))
-        fig.patch.set_facecolor("#0b0b0b")
-        ax.set_facecolor("#0b0b0b")
+        fig.patch.set_facecolor(BG)
+        ax.set_facecolor(BG)
 
         y = np.arange(len(team_metrics))
-        ax.barh(y, team_values, height=0.52, color=colors, edgecolor="white", linewidth=1)
+        ax.barh(
+            y,
+            team_values,
+            height=0.52,
+            color=colors,
+            edgecolor="black",
+            linewidth=0.8
+        )
 
-        # League average markers
+        # League average markers (BLUE)
         for i, avg in enumerate(league_values):
-            ax.plot(avg, i, marker="D", markersize=7, color="#FFFF00", zorder=3)
+            ax.plot(avg, i, marker="D", markersize=7, color=LEAGUE_MARKER, zorder=3)
 
         # Value labels
         for i, val in enumerate(team_values):
-            ax.text(val + max(team_values) * 0.015, i, f"{val:.1f}",
-                    va="center", ha="left", color="white", fontsize=10)
+            ax.text(
+                val + max(team_values) * 0.015,
+                i,
+                f"{val:.1f}",
+                va="center",
+                ha="left",
+                color=TEXT,
+                fontsize=10
+            )
 
         ax.set_yticks(y)
-        ax.set_yticklabels(team_metrics, color="white", fontsize=11)
+        ax.set_yticklabels(team_metrics, color=TEXT, fontsize=11)
         ax.invert_yaxis()
-        ax.tick_params(axis="x", colors="gray")
+        ax.tick_params(axis="x", colors=TEXT)
         ax.tick_params(axis="y", length=0)
-        ax.grid(axis="x", linestyle="--", alpha=0.15)
+
+        ax.grid(axis="x", linestyle="--", alpha=0.25, color="black")
 
         for spine in ax.spines.values():
             spine.set_visible(False)
 
         # Titles
-        ax.text(-0.15, 1.20, f"{selected_team.upper()} | TEAM ANALYSIS",
-                transform=ax.transAxes, color="white", fontsize=24, fontweight="bold")
+        ax.text(
+            -0.15,
+            1.20,
+            f"{selected_team.upper()} | TEAM ANALYSIS",
+            transform=ax.transAxes,
+            color=TEXT,
+            fontsize=24,
+            fontweight="bold"
+        )
 
-        ax.text(-0.15, 1.12,
-                "Percentile Rank National League South | Season 2025–26\n"
-                "Data: Statsbomb | Graphic: @Neil_barretto",
-                transform=ax.transAxes, color="white", fontsize=11)
+        ax.text(
+            -0.15,
+            1.12,
+            "Percentile Rank National League South | Season 2025–26\n"
+            "Data: Statsbomb | Graphic: @Neil_barretto",
+            transform=ax.transAxes,
+            color=TEXT,
+            fontsize=11
+        )
 
         # Legend
-        ax.text(0.15, 1.05, "■ Above League Avg", transform=ax.transAxes, color="#2ecc71", fontsize=10)
-        ax.text(0.35, 1.05, "■ Below League Avg", transform=ax.transAxes, color="#e00614", fontsize=10)
-        ax.text(0.60, 1.05, "♦ League Average", transform=ax.transAxes, color="#FFFF00", fontsize=10)
+        ax.text(0.15, 1.05, "■ Above League Avg", transform=ax.transAxes, color=GREEN, fontsize=10)
+        ax.text(0.35, 1.05, "■ Below League Avg", transform=ax.transAxes, color=RED, fontsize=10)
+        ax.text(0.60, 1.05, "♦ League Average", transform=ax.transAxes, color=LEAGUE_MARKER, fontsize=10)
 
         return fig
 
-    fig = make_team_plot(selected_team)
-    st.pyplot(fig)
+    fig_team = make_team_plot(selected_team)
+    st.pyplot(fig_team)
 
     if st.button("💾 Save Team PNG"):
         filename = f"{selected_team.replace(' ', '_')}_Team_Performance.png"
         save_path = os.path.join(OUTPUT_FOLDER, filename)
-        fig.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig.get_facecolor())
+        fig_team.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig_team.get_facecolor())
         st.success(f"Saved: {save_path}")
 
 
@@ -200,24 +234,22 @@ with tab2:
         row90 = player_df[player_df["Name"] == player].iloc[0]
         rowpct = player_pct_df[player_pct_df["Name"] == player].iloc[0]
 
-        # AUTO ROLE DETECTION (PRIMARY + SECONDARY)
         auto_role = detect_role(row90["Primary Position"], row90["Secondary Position"])
         role = auto_role if role_choice == "Auto" else role_choice
 
-        # Safety: if GK is detected, force Midfield (or you can make GK radar later)
+        # (Optional) if GK detected but no GK radar exists
         if role == "Goalkeeper":
             role = "Defensive"
 
         metrics = radar_metrics[role]
         values = [rowpct[m] for m in metrics]
 
-        # ---------------- FIGURE ----------------
-        fig = plt.figure(figsize=(16, 9), facecolor="#ede8d0")
+        fig = plt.figure(figsize=(16, 9), facecolor=BG)
         gs = fig.add_gridspec(2, 3, width_ratios=[1.15, 1.15, 1.6], hspace=0.45, wspace=0.18)
 
         # -------- GOALS & ASSISTS --------
         ax1 = fig.add_subplot(gs[0, 0:2])
-        ax1.set_facecolor("#ede8d0")
+        ax1.set_facecolor(BG)
 
         goals, xg = row90["All Goals"], row90["xG"]
         assists, xa = row90["Assists"], row90["xG Assisted"]
@@ -225,47 +257,47 @@ with tab2:
         y = np.arange(2)
         h = 0.35
 
-        ax1.barh(y - h/2, [goals, assists], height=h, color="#000000", label="Actual")
+        ax1.barh(y - h/2, [goals, assists], height=h, color="black", label="Actual")
         ax1.barh(y + h/2, [xg, xa], height=h, color="#555555", label="Expected")
 
         ax1.set_yticks(y)
-        ax1.set_yticklabels(["Goals", "Assists"], color="black")
+        ax1.set_yticklabels(["Goals", "Assists"], color=TEXT)
         ax1.invert_yaxis()
         ax1.legend(loc="lower center", bbox_to_anchor=(0.5, -0.25), ncol=2, frameon=False)
         ax1.grid(axis="x", linestyle="--", alpha=0.3, color="black")
         ax1.spines[:].set_visible(False)
-        ax1.tick_params(left=False, bottom=False, colors="black")
+        ax1.tick_params(left=False, bottom=False, colors=TEXT)
 
         # -------- COMPLETION RATES --------
         ax2 = fig.add_subplot(gs[1, 0:2])
-        ax2.set_facecolor("#ede8d0")
+        ax2.set_facecolor(BG)
 
         comp_labels = ["Shooting%", "Passing%", "Dribble%", "Crossing%", "Carry%"]
         comp_vals = [row90[c] for c in comp_labels]
         y2 = np.arange(len(comp_labels))
 
-        ax2.barh(y2, comp_vals, color="#000000")
+        ax2.barh(y2, comp_vals, color="black")
         ax2.set_yticks(y2)
-        ax2.set_yticklabels(comp_labels, color="black")
+        ax2.set_yticklabels(comp_labels, color=TEXT)
         ax2.set_xlim(0, 100)
         ax2.invert_yaxis()
-        ax2.set_title("COMPLETION RATE %", color="black", fontweight="bold")
+        ax2.set_title("COMPLETION RATE %", color=TEXT, fontweight="bold")
         ax2.grid(axis="x", linestyle="--", alpha=0.3, color="black")
         ax2.spines[:].set_visible(False)
-        ax2.tick_params(left=False, bottom=False, colors="black")
+        ax2.tick_params(left=False, bottom=False, colors=TEXT)
 
         # -------- PIZZA CHART --------
         ax3 = fig.add_subplot(gs[:, 2], polar=True)
-        ax3.set_facecolor("#ede8d0")
+        ax3.set_facecolor(BG)
         ax3.set_position([0.60, 0.12, 0.38, 0.80])
 
         baker = PyPizza(
             params=metrics,
             min_range=[0]*len(metrics),
             max_range=[100]*len(metrics),
-            background_color="#ede8d0",
-            straight_line_color="white",   # dividers
-            last_circle_color="black",     # outer circle
+            background_color=BG,
+            straight_line_color="white",
+            last_circle_color="black",
             other_circle_lw=1
         )
 
@@ -273,21 +305,25 @@ with tab2:
             values,
             ax=ax3,
             figsize=(7, 7),
-            kwargs_slices=dict(facecolor="#000000", edgecolor="black", linewidth=1),
-            kwargs_params=dict(color="black", fontsize=9),
+            kwargs_slices=dict(facecolor="black", edgecolor="black", linewidth=1),
+            kwargs_params=dict(color=TEXT, fontsize=9),
             kwargs_values=dict(
-                color="black",
+                color=TEXT,
                 fontsize=9,
-                bbox=dict(boxstyle="round,pad=0.2", fc="#ede8d0", ec="black", lw=0.5)
+                bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5)
             )
         )
 
         ax3.text(
-            0.5, -0.08,
+            0.5,
+            -0.08,
             f"{role.upper()} PERCENTILE PROFILE",
             transform=ax3.transAxes,
-            ha="center", va="center",
-            fontsize=12, fontweight="bold", color="black"
+            ha="center",
+            va="center",
+            fontsize=12,
+            fontweight="bold",
+            color=TEXT
         )
 
         # -------- TITLE --------
@@ -299,24 +335,28 @@ with tab2:
         age = int(row90["Age"])
 
         fig.text(
-            0.05, 0.965,
+            0.05,
+            0.965,
             f"{name.upper()}",
             fontsize=50,
             fontproperties=title_font.prop,
-            ha="left", va="center",
-            color="black"
+            ha="left",
+            va="center",
+            color=TEXT
         )
 
         fig.text(
-            1, 0.965,
+            1,
+            0.965,
             f"{team} | {nation}\n{primary} | {secondary} | {age}",
-            fontsize=18, fontweight="bold",
-            ha="right", va="center",
-            color="black"
+            fontsize=18,
+            fontweight="bold",
+            ha="right",
+            va="center",
+            color=TEXT
         )
 
         st.pyplot(fig)
-
         return fig
 
     fig_player = draw_player_dashboard(selected_player, selected_role)
