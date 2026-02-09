@@ -37,7 +37,7 @@ TEXT = "black"
 
 GREEN = "#008000"
 RED = "#992514"
-LEAGUE_MARKER = "#000000"   # marker colour
+LEAGUE_MARKER = "#000000"
 
 # ---------------- POSITION → ROLE LOGIC ----------------
 def detect_role(primary_pos, secondary_pos=None):
@@ -73,7 +73,6 @@ def detect_role(primary_pos, secondary_pos=None):
     if any(k in pos_text for k in attacking_keywords):
         return "Attacking"
 
-    # Default
     return "Midfield"
 
 
@@ -179,7 +178,6 @@ with tab1:
         for spine in ax.spines.values():
             spine.set_visible(False)
 
-        # Titles
         ax.text(
             -0.15,
             1.20,
@@ -200,10 +198,9 @@ with tab1:
             fontsize=11
         )
 
-        # Legend
         ax.text(0.15, 1.05, "■ Above League Avg", transform=ax.transAxes, color=GREEN, fontsize=10)
         ax.text(0.35, 1.05, "■ Below League Avg", transform=ax.transAxes, color=RED, fontsize=10)
-        ax.text(0.60, 1.05, "♦ League Average", transform=ax.transAxes, color=LEAGUE_MARKER, fontsize=10)
+        ax.text(0.55, 1.05, "♦ League Average", transform=ax.transAxes, color=LEAGUE_MARKER, fontsize=10)
 
         return fig
 
@@ -223,17 +220,14 @@ with tab1:
 with tab2:
     st.sidebar.header("Player Dashboard Settings")
 
-    # --- TEAM DROPDOWN ---
     player_teams = sorted(player_df["Team"].dropna().unique())
     selected_player_team = st.sidebar.selectbox("Choose Team", player_teams)
 
-    # --- PLAYER DROPDOWN FILTERED BY TEAM ---
     filtered_players = player_df[player_df["Team"] == selected_player_team]["Name"].dropna().unique()
     filtered_players = sorted(filtered_players)
 
     selected_player = st.sidebar.selectbox("Choose Player", filtered_players)
 
-    # --- ROLE DROPDOWN ---
     selected_role = st.sidebar.selectbox("Role", ["Auto", "Attacking", "Midfield", "Defensive"])
 
     def draw_player_dashboard(player, role_choice):
@@ -243,7 +237,6 @@ with tab2:
         auto_role = detect_role(row90["Primary Position"], row90["Secondary Position"])
         role = auto_role if role_choice == "Auto" else role_choice
 
-        # If GK detected but no GK radar exists
         if role == "Goalkeeper":
             role = "Defensive"
 
@@ -266,18 +259,6 @@ with tab2:
         ax1.barh(y - h/2, [goals, assists], height=h, color="black", label="Actual")
         ax1.barh(y + h/2, [xg, xa], height=h, color="#555555", label="Expected")
 
-        # --- VALUE LABELS (Actual + Expected) ---
-        actual_vals = [goals, assists]
-        expected_vals = [xg, xa]
-
-        for i, val in enumerate(actual_vals):
-            ax1.text(val + 0.05, y[i] - h/2, f"{val:.2f}", va="center", ha="left",
-                     fontsize=11, color=TEXT)
-
-        for i, val in enumerate(expected_vals):
-            ax1.text(val + 0.05, y[i] + h/2, f"{val:.2f}", va="center", ha="left",
-                     fontsize=11, color=TEXT)
-
         ax1.set_yticks(y)
         ax1.set_yticklabels(["Goals", "Assists"], color=TEXT)
         ax1.invert_yaxis()
@@ -296,7 +277,7 @@ with tab2:
 
         ax2.barh(y2, comp_vals, color="black")
 
-        # --- VALUE LABELS (% values) ---
+        # --- VALUE LABELS ONLY HERE ---
         for i, val in enumerate(comp_vals):
             ax2.text(val + 1, i, f"{val:.1f}%", va="center", ha="left",
                      fontsize=11, color=TEXT)
