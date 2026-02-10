@@ -411,6 +411,9 @@ with tab2:
 # =============================================================================
 # GOALKEEPER DASHBOARD TAB
 # =============================================================================
+# =============================================================================
+# GOALKEEPER DASHBOARD TAB (UPDATED: 2 RADARS + HEIGHT)
+# =============================================================================
 with tab3:
     st.sidebar.header("Goalkeeper Dashboard Settings")
 
@@ -422,127 +425,151 @@ with tab3:
 
     selected_gk = st.sidebar.selectbox("Choose Goalkeeper", gk_players)
 
+    # ---------------- GK METRIC SPLIT ----------------
+    gk_shotstop_metrics = [
+        "Goals Conceded",
+        "PSxG Faced",
+        "GSAA",
+        "Save%",
+        "xSv%",
+        "Shot Stopping%",
+        "xG Faced",
+        "Shots Faced",
+        "Shots Faced OT%",
+        "All Shots Faced"
+    ]
+
+    gk_dist_metrics = [
+        "Passing%",
+        "Pass Length",
+        "GK Aggressive Dist.",
+        "Claims%",
+        "Positioning Error",
+        "Penalties Faced",
+        "Penalties Conceded",
+        "Pass into Danger%",
+        "Pass into Pressure%",
+        "Positive Outcome",
+        "Positive Outcome%"
+    ]
+
     def draw_gk_dashboard(gk_name):
         row90 = gk_df[gk_df["Name"] == gk_name].iloc[0]
         rowpct = gk_pct_df[gk_pct_df["Name"] == gk_name].iloc[0]
 
-        metrics = gk_radar_metrics
-        values = [rowpct[m] for m in metrics]
+        shot_vals = [rowpct[m] for m in gk_shotstop_metrics]
+        dist_vals = [rowpct[m] for m in gk_dist_metrics]
 
         fig = plt.figure(figsize=(16, 9), facecolor=BG)
-        gs = fig.add_gridspec(2, 3, width_ratios=[1.15, 1.15, 1.6], hspace=0.45, wspace=0.18)
 
-        # -------- SHOT STOPPING BLOCK --------
-        ax1 = fig.add_subplot(gs[0, 0:2])
+        # Layout: 2 radars side-by-side
+        gs = fig.add_gridspec(
+            1, 2,
+            width_ratios=[1, 1],
+            wspace=0.25
+        )
+
+        # ---------------- RADAR 1: SHOT STOPPING ----------------
+        ax1 = fig.add_subplot(gs[0, 0], polar=True)
         ax1.set_facecolor(BG)
 
-        shot_labels = ["Save%", "xSv%", "Shot Stopping%"]
-        shot_vals = [row90[m] for m in shot_labels]
-        y = np.arange(len(shot_labels))
-
-        bars = ax1.barh(y, shot_vals, color="black")
-
-        for i, b in enumerate(bars):
-            val = shot_vals[i]
-            ax1.text(
-                val + 1.5,
-                b.get_y() + b.get_height()/2,
-                f"{val:.1f}%",
-                va="center",
-                ha="left",
-                fontsize=10,
-                color=TEXT
-            )
-
-        ax1.set_yticks(y)
-        ax1.set_yticklabels(shot_labels, color=TEXT)
-        ax1.set_xlim(0, 100)
-        ax1.invert_yaxis()
-        ax1.set_title("SHOT STOPPING %", color=TEXT, fontweight="bold")
-        ax1.grid(axis="x", linestyle="--", alpha=0.3, color="black")
-        ax1.spines[:].set_visible(False)
-        ax1.tick_params(left=False, bottom=False, colors=TEXT)
-
-        # -------- DISTRIBUTION BLOCK --------
-        ax2 = fig.add_subplot(gs[1, 0:2])
-        ax2.set_facecolor(BG)
-
-        dist_labels = ["Passing%", "Pass Length", "Pass into Danger%", "Pass into Pressure%"]
-        dist_vals = [row90[m] for m in dist_labels]
-        y2 = np.arange(len(dist_labels))
-
-        bars2 = ax2.barh(y2, dist_vals, color="black")
-
-        for i, b in enumerate(bars2):
-            val = dist_vals[i]
-            ax2.text(
-                val + (1.5 if val <= 95 else -3),
-                b.get_y() + b.get_height()/2,
-                f"{val:.1f}",
-                va="center",
-                ha="left" if val <= 95 else "right",
-                fontsize=10,
-                color=TEXT
-            )
-
-        ax2.set_yticks(y2)
-        ax2.set_yticklabels(dist_labels, color=TEXT)
-        ax2.invert_yaxis()
-        ax2.set_title("DISTRIBUTION & RISK", color=TEXT, fontweight="bold")
-        ax2.grid(axis="x", linestyle="--", alpha=0.3, color="black")
-        ax2.spines[:].set_visible(False)
-        ax2.tick_params(left=False, bottom=False, colors=TEXT)
-
-        # -------- PIZZA CHART --------
-        ax3 = fig.add_subplot(gs[:, 2], polar=True)
-        ax3.set_facecolor(BG)
-        ax3.set_position([0.60, 0.12, 0.38, 0.80])
-
-        baker = PyPizza(
-            params=metrics,
-            min_range=[0]*len(metrics),
-            max_range=[100]*len(metrics),
+        baker1 = PyPizza(
+            params=gk_shotstop_metrics,
+            min_range=[0] * len(gk_shotstop_metrics),
+            max_range=[100] * len(gk_shotstop_metrics),
             background_color=BG,
             straight_line_color="white",
             last_circle_color="black",
             other_circle_lw=1
         )
 
-        baker.make_pizza(
-            values,
-            ax=ax3,
+        baker1.make_pizza(
+            shot_vals,
+            ax=ax1,
             figsize=(7, 7),
             kwargs_slices=dict(facecolor="black", edgecolor="black", linewidth=1),
-            kwargs_params=dict(color=TEXT, fontsize=8),
+            kwargs_params=dict(color=TEXT, fontsize=9),
             kwargs_values=dict(
                 color=TEXT,
-                fontsize=8,
+                fontsize=9,
                 bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5)
             )
         )
 
-        ax3.text(
-            0.5,
-            -0.08,
-            "GOALKEEPER PERCENTILE PROFILE",
-            transform=ax3.transAxes,
+        ax1.text(
+            0.5, -0.12,
+            "SHOT-STOPPING",
+            transform=ax1.transAxes,
             ha="center",
             va="center",
-            fontsize=12,
+            fontsize=13,
             fontweight="bold",
             color=TEXT
         )
 
-        # -------- TITLE --------
-        name = row90["Name"]
-        team = row90["Team"]
-        nation = row90["Nationality"]
-        primary = row90["Primary Position"]
+        # ---------------- RADAR 2: DISTRIBUTION + COMMAND ----------------
+        ax2 = fig.add_subplot(gs[0, 1], polar=True)
+        ax2.set_facecolor(BG)
+
+        baker2 = PyPizza(
+            params=gk_dist_metrics,
+            min_range=[0] * len(gk_dist_metrics),
+            max_range=[100] * len(gk_dist_metrics),
+            background_color=BG,
+            straight_line_color="white",
+            last_circle_color="black",
+            other_circle_lw=1
+        )
+
+        baker2.make_pizza(
+            dist_vals,
+            ax=ax2,
+            figsize=(7, 7),
+            kwargs_slices=dict(facecolor="black", edgecolor="black", linewidth=1),
+            kwargs_params=dict(color=TEXT, fontsize=9),
+            kwargs_values=dict(
+                color=TEXT,
+                fontsize=9,
+                bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5)
+            )
+        )
+
+        ax2.text(
+            0.5, -0.12,
+            "DISTRIBUTION + COMMAND",
+            transform=ax2.transAxes,
+            ha="center",
+            va="center",
+            fontsize=13,
+            fontweight="bold",
+            color=TEXT
+        )
+
+        # ---------------- TITLE + SUBTITLE ----------------
+        name = row90.get("Name", "")
+        team = row90.get("Team", "")
+        nation = row90.get("Nationality", "")
+
+        age = row90.get("Age", "")
+        height = row90.get("Height", "")
+
+        # Safe formatting (blank if missing)
+        age_txt = f"{int(age)}" if pd.notna(age) and str(age).strip() != "" else ""
+        height_txt = f"{height}" if pd.notna(height) and str(height).strip() != "" else ""
+
+        # Build subtitle line
+        subtitle_parts = [team, nation]
+        if age_txt != "":
+            subtitle_parts.append(age_txt)
+        if height_txt != "":
+            subtitle_parts.append(height_txt)
+
+        subtitle = " | ".join([p for p in subtitle_parts if str(p).strip() != ""])
 
         fig.text(
             0.05,
-            0.965,
-            f"{name.upper()}",
+            0.96,
+            f"{str(name).upper()}",
             fontsize=50,
             fontproperties=title_font.prop,
             ha="left",
@@ -551,9 +578,9 @@ with tab3:
         )
 
         fig.text(
-            1,
-            0.965,
-            f"{team} | {nation}\n{primary}",
+            0.98,
+            0.96,
+            subtitle,
             fontsize=18,
             fontweight="bold",
             ha="right",
