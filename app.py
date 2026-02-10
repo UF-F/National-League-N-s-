@@ -568,7 +568,7 @@ with tab3:
         ax1 = fig.add_subplot(gs[0, 0:2])
         ax1.set_facecolor(BG)
 
-        shot_labels = ["Save%", "xSv%", "Shot Stopping%"]
+        shot_labels = ["Save%", "xSv%"]
         shot_vals = [safe_num(row90, m) for m in shot_labels]
         y = np.arange(len(shot_labels))
 
@@ -672,3 +672,4 @@ with tab3:
         save_path = os.path.join(OUTPUT_FOLDER, filename)
         fig_gk.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig_gk.get_facecolor())
         st.success(f"Saved: {save_path}")
+
