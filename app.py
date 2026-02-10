@@ -417,6 +417,9 @@ with tab2:
 # =============================================================================
 
 
+# =============================================================================
+# GOALKEEPER DASHBOARD TAB  (NO PyPizza - Streamlit Cloud safe)
+# =============================================================================
 with tab3:
     st.sidebar.header("Goalkeeper Dashboard Settings")
 
@@ -454,13 +457,86 @@ with tab3:
     ]
 
     # ---------------- SAFE HELPER ----------------
-    def safe_value(row, col, default=""):
+    def safe_num(row, col):
         if col not in row.index:
-            return default
+            return 0
         v = row[col]
         if pd.isna(v):
-            return default
-        return v
+            return 0
+        try:
+            return float(v)
+        except:
+            return 0
+
+    def safe_text(row, col):
+        if col not in row.index:
+            return ""
+        v = row[col]
+        if pd.isna(v):
+            return ""
+        return str(v)
+
+    # ---------------- CUSTOM RADAR FUNCTION ----------------
+    def make_radar(ax, labels, values, title):
+        N = len(labels)
+
+        # Angles
+        angles = np.linspace(0, 2*np.pi, N, endpoint=False).tolist()
+        angles += angles[:1]
+
+        # Values close loop
+        values = values + values[:1]
+
+        # Polar settings
+        ax.set_theta_offset(np.pi / 2)
+        ax.set_theta_direction(-1)
+
+        ax.set_facecolor(BG)
+        ax.set_ylim(0, 100)
+
+        # Grid circles + dividers
+        ax.yaxis.grid(True, linestyle="--", alpha=0.35, color="black")
+        ax.xaxis.grid(True, linestyle="-", alpha=0.9, color="white", linewidth=2)
+
+        # Outside circle black
+        ax.spines["polar"].set_color("black")
+        ax.spines["polar"].set_linewidth(2)
+
+        # Radar fill
+        ax.plot(angles, values, color="black", linewidth=2)
+        ax.fill(angles, values, color="black", alpha=1)
+
+        # Labels
+        ax.set_xticks(angles[:-1])
+        ax.set_xticklabels(labels, fontsize=9, color=TEXT)
+
+        # Remove radial tick labels
+        ax.set_yticklabels([])
+
+        # Value boxes
+        for angle, val in zip(angles[:-1], values[:-1]):
+            ax.text(
+                angle,
+                val + 6,
+                f"{int(round(val))}",
+                ha="center",
+                va="center",
+                fontsize=8,
+                color=TEXT,
+                bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5)
+            )
+
+        ax.text(
+            0.5,
+            -0.10,
+            title,
+            transform=ax.transAxes,
+            ha="center",
+            va="center",
+            fontsize=12,
+            fontweight="bold",
+            color=TEXT
+        )
 
     # ---------------- GK DASHBOARD FUNCTION ----------------
     def draw_gk_dashboard(gk_name, radar_choice):
@@ -478,13 +554,7 @@ with tab3:
             metrics = gk_metrics_full
             radar_title = "GOALKEEPER PERCENTILE PROFILE"
 
-        # Get percentile values safely
-        values = []
-        for m in metrics:
-            if m in rowpct.index and pd.notna(rowpct[m]):
-                values.append(float(rowpct[m]))
-            else:
-                values.append(0)
+        values = [safe_num(rowpct, m) for m in metrics]
 
         fig = plt.figure(figsize=(16, 9), facecolor=BG)
         gs = fig.add_gridspec(
@@ -499,17 +569,16 @@ with tab3:
         ax1.set_facecolor(BG)
 
         shot_labels = ["Save%", "xSv%", "Shot Stopping%"]
-        shot_vals = [safe_value(row90, m, 0) for m in shot_labels]
-        shot_vals = [float(v) if v != "" else 0 for v in shot_vals]
-
+        shot_vals = [safe_num(row90, m) for m in shot_labels]
         y = np.arange(len(shot_labels))
+
         bars = ax1.barh(y, shot_vals, color="black")
 
         for i, b in enumerate(bars):
             val = shot_vals[i]
             ax1.text(
                 val + 1.5,
-                b.get_y() + b.get_height() / 2,
+                b.get_y() + b.get_height()/2,
                 f"{val:.1f}%",
                 va="center",
                 ha="left",
@@ -531,17 +600,16 @@ with tab3:
         ax2.set_facecolor(BG)
 
         dist_labels = ["Passing%", "Pass Length", "Pass into Danger%", "Pass into Pressure%"]
-        dist_vals = [safe_value(row90, m, 0) for m in dist_labels]
-        dist_vals = [float(v) if v != "" else 0 for v in dist_vals]
-
+        dist_vals = [safe_num(row90, m) for m in dist_labels]
         y2 = np.arange(len(dist_labels))
+
         bars2 = ax2.barh(y2, dist_vals, color="black")
 
         for i, b in enumerate(bars2):
             val = dist_vals[i]
             ax2.text(
                 val + 1.5,
-                b.get_y() + b.get_height() / 2,
+                b.get_y() + b.get_height()/2,
                 f"{val:.1f}",
                 va="center",
                 ha="left",
@@ -557,60 +625,24 @@ with tab3:
         ax2.spines[:].set_visible(False)
         ax2.tick_params(left=False, bottom=False, colors=TEXT)
 
-        # -------- PIZZA CHART --------
-        # IMPORTANT: DO NOT USE polar=True (this fixes your error)
-        ax3 = fig.add_subplot(gs[:, 2])
-        ax3.set_facecolor(BG)
+        # -------- RADAR (CUSTOM) --------
+        ax3 = fig.add_subplot(gs[:, 2], polar=True)
         ax3.set_position([0.60, 0.12, 0.38, 0.80])
 
-        baker = PyPizza(
-            params=metrics,
-            min_range=[0] * len(metrics),
-            max_range=[100] * len(metrics),
-            background_color=BG,
-            straight_line_color="white",
-            last_circle_color="black",
-            other_circle_lw=1
-        )
-
-        baker.make_pizza(
-            values,
-            ax=ax3,
-            figsize=(7, 7),
-            kwargs_slices=dict(facecolor="black", edgecolor="black", linewidth=1),
-            kwargs_params=dict(color=TEXT, fontsize=8),
-            kwargs_values=dict(
-                color=TEXT,
-                fontsize=8,
-                bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5)
-            )
-        )
-
-        ax3.text(
-            0.5,
-            -0.08,
-            radar_title,
-            transform=ax3.transAxes,
-            ha="center",
-            va="center",
-            fontsize=12,
-            fontweight="bold",
-            color=TEXT
-        )
+        make_radar(ax3, metrics, values, radar_title)
 
         # -------- TITLE --------
-        name = safe_value(row90, "Name", "")
-        team = safe_value(row90, "Team", "")
-        nation = safe_value(row90, "Nationality", "")
-        height = safe_value(row90, "Height", "")
+        name = safe_text(row90, "Name")
+        team = safe_text(row90, "Team")
+        nation = safe_text(row90, "Nationality")
+        height = safe_text(row90, "Height")
 
-        # Format height nicely
         height_text = f" | {height}" if height != "" else ""
 
         fig.text(
             0.05,
             0.965,
-            f"{str(name).upper()}",
+            f"{name.upper()}",
             fontsize=50,
             fontproperties=title_font.prop,
             ha="left",
