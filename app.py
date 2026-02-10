@@ -418,229 +418,223 @@ with tab2:
 
 
 # =============================================================================
-# GOALKEEPER DASHBOARD TAB  (NO PyPizza - Streamlit Cloud safe)
+# GOALKEEPER DASHBOARD TAB
 # =============================================================================
-# ============================================================
-# TAB 3 — GOALKEEPER DASHBOARD
-# ============================================================
-
-import matplotlib.pyplot as plt
-from mplsoccer import PyPizza
-
-# ---------------- LOAD GK DATA ----------------
-gk90 = pd.read_csv("GK (Per90).csv")
-gk_pct = pd.read_csv("GK (Percentile).csv")
-
-# Clean columns
-gk90.columns = gk90.columns.str.strip()
-gk_pct.columns = gk_pct.columns.str.strip()
-
-# Ensure Height exists
-if "Height" not in gk90.columns:
-    gk90["Height"] = ""
-
-# Ensure numeric where needed
-gk90["Minutes"] = pd.to_numeric(gk90["Minutes"], errors="coerce").fillna(0)
-gk_pct["Minutes"] = pd.to_numeric(gk_pct["Minutes"], errors="coerce").fillna(0)
-
-# Filter keepers who have played
-gk90 = gk90[gk90["Minutes"] > 0].copy()
-gk_pct = gk_pct[gk_pct["Minutes"] > 0].copy()
-
-# ---------------- TAB 3 UI ----------------
-tab3 = tabs[2]
+tab1, tab2, tab3 = st.tabs(["📊 Team Dashboard", "👤 Player Dashboard", "🧤 GK Dashboard"])
 
 with tab3:
-    st.header("🧤 Goalkeeper Dashboard")
+    st.sidebar.header("GK Dashboard Settings")
 
-    col1, col2 = st.columns([2, 1])
+    # ---------------- FILE PATHS ----------------
+    GK_FILE = "GK (Per90).csv"
+    GK_PCT_FILE = "GK (Percentile).csv"
 
-    with col1:
-        selected_team_gk = st.selectbox(
-            "Select Team (GK)",
-            sorted(gk90["Team"].dropna().unique())
-        )
+    # ---------------- LOAD GK DATA ----------------
+    gk_df = pd.read_csv(GK_FILE)
+    gk_df.columns = gk_df.columns.str.strip()
 
-    with col2:
-        radar_type = st.selectbox(
-            "Radar Type",
-            ["Full GK Radar", "Split GK Radars (2)"]
-        )
+    gk_pct_df = pd.read_csv(GK_PCT_FILE)
+    gk_pct_df.columns = gk_pct_df.columns.str.strip()
 
-    gk_team_df = gk90[gk90["Team"] == selected_team_gk]
-    selected_gk = st.selectbox(
-        "Select Goalkeeper",
-        sorted(gk_team_df["Name"].dropna().unique())
+    # ---------------- TEAM + PLAYER DROPDOWNS ----------------
+    gk_teams = sorted(gk_df["Team"].dropna().unique())
+    selected_gk_team = st.sidebar.selectbox("Choose Team", gk_teams)
+
+    filtered_gks = gk_df[gk_df["Team"] == selected_gk_team]["Name"].dropna().unique()
+    filtered_gks = sorted(filtered_gks)
+    selected_gk = st.sidebar.selectbox("Choose Goalkeeper", filtered_gks)
+
+    # ---------------- RADAR TYPE DROPDOWN ----------------
+    radar_type = st.sidebar.selectbox(
+        "Radar Type",
+        ["Full GK Radar", "Shot Stopping + Sweeping", "Distribution + Decision Making"]
     )
 
-    # ---------------- GK DASHBOARD FUNCTION ----------------
-    def draw_gk_dashboard(player_name, radar_type="Full GK Radar"):
+    # ---------------- GK METRICS (PERCENTILES) ----------------
+    gk_radar_full = [
+        "Goals Conceded", "PSxG Faced", "GSAA", "Save%", "xSv%",
+        "xG Faced", "Shots Faced", "Shots Faced OT%", "All Shots Faced",
+        "Positioning Error", "Penalties Faced", "Penalties Conceded",
+        "GK Aggressive Dist.", "Claims%",
+        "Pass into Danger%", "Pass into Pressure%",
+        "Positive Outcome", "Positive Outcome%"
+    ]
 
-        gk_row90 = gk90[gk90["Name"] == player_name].iloc[0]
-        gk_rowpct = gk_pct[gk_pct["Name"] == player_name].iloc[0]
+    gk_radar_shotstop = [
+        "Goals Conceded", "PSxG Faced", "GSAA", "Save%", "xSv%",
+        "Shots Faced", "Shots Faced OT%", "All Shots Faced",
+        "GK Aggressive Dist.", "Claims%"
+    ]
 
-        name = gk_row90["Name"]
-        team = gk_row90["Team"]
-        mins = int(gk_row90["Minutes"]) if pd.notna(gk_row90["Minutes"]) else 0
-        nat = gk_row90["Nationality"] if pd.notna(gk_row90["Nationality"]) else ""
-        height = gk_row90["Height"] if pd.notna(gk_row90["Height"]) else ""
+    gk_radar_distribution = [
+        "Passing%", "Pass Length",
+        "Pass into Danger%", "Pass into Pressure%",
+        "Positive Outcome", "Positive Outcome%"
+    ]
 
-        subtitle = f"{team} | {mins} mins | {nat}"
-        if str(height).strip() != "":
-            subtitle += f" | {height}"
+    # ---------------- MAIN DRAW FUNCTION ----------------
+    def draw_gk_dashboard(gk_name, radar_choice):
+        gk_row = gk_df[gk_df["Name"] == gk_name].iloc[0]
+        gk_pct_row = gk_pct_df[gk_pct_df["Name"] == gk_name].iloc[0]
 
-        # ---------------- STYLE ----------------
-        bg = "#F3E9D2"       # Beige background
-        text = "black"
-        blue = "#1f77b4"     # League average = blue
-        green = "#2ca02c"
-        red = "#d62728"
-
-        # ---------------- METRIC GROUPS ----------------
-        # For the RADARS
-        full_radar_metrics = [
-            "Goals Conceded", "PSxG Faced", "GSAA", "Save%", "xSv%",
-            "xG Faced", "Shots Faced", "Shots Faced OT%", "All Shots Faced",
-            "Positioning Error", "Penalties Faced", "Penalties Conceded",
-            "GK Aggressive Dist.", "Claims%", "Pass into Danger%",
-            "Pass into Pressure%", "Positive Outcome", "Positive Outcome%"
-        ]
-
-        # Split radar option
-        radar_1 = [
-            "Goals Conceded", "PSxG Faced", "GSAA", "Save%", "xSv%",
-            "xG Faced", "Shots Faced", "Shots Faced OT%", "All Shots Faced"
-        ]
-
-        radar_2 = [
-            "Positioning Error", "Penalties Faced", "Penalties Conceded",
-            "GK Aggressive Dist.", "Claims%", "Pass into Danger%",
-            "Pass into Pressure%", "Positive Outcome", "Positive Outcome%"
-        ]
-
-        # For the BAR CHARTS
-        passing_metrics = ["Passing%", "Pass Length"]
-
-        # IMPORTANT: removed Shot Stopping% from this bar chart
-        shot_metrics = ["Save%", "xSv%"]
-
-        # ---------------- HELPER ----------------
-        def safe_val(x):
-            try:
-                if pd.isna(x):
-                    return 0
-                return float(x)
-            except:
-                return 0
-
-        # ---------------- FIGURE LAYOUT ----------------
-        fig = plt.figure(figsize=(14, 8), facecolor=bg)
-        gs = fig.add_gridspec(2, 3, width_ratios=[1.1, 1.1, 1.4], height_ratios=[1, 1])
-
-        ax1 = fig.add_subplot(gs[0, 0:2])     # passing bar
-        ax2 = fig.add_subplot(gs[1, 0:2])     # shot bar
-        ax3 = fig.add_subplot(gs[:, 2])       # pizza chart axis (NOT polar!)
-
-        # ---------------- TITLE ----------------
-        fig.suptitle(name, fontsize=20, fontweight="bold", color=text, y=0.98)
-        fig.text(0.5, 0.93, subtitle, ha="center", fontsize=12, color=text)
-
-        # ============================================================
-        # BAR CHART 1 — PASSING
-        # ============================================================
-        pass_vals = [safe_val(gk_row90[m]) for m in passing_metrics]
-        pass_pct = [safe_val(gk_rowpct[m]) for m in passing_metrics]
-
-        ax1.set_facecolor(bg)
-        ax1.barh(passing_metrics, pass_pct)
-
-        ax1.set_xlim(0, 100)
-        ax1.set_title("Distribution", fontsize=14, fontweight="bold", color=text)
-        ax1.axvline(50, color=blue, linestyle="--", linewidth=2)
-
-        for i, (pct, raw) in enumerate(zip(pass_pct, pass_vals)):
-            ax1.text(pct + 1, i, f"{raw:.2f}", va="center", fontsize=10, color=text)
-
-        ax1.tick_params(colors=text)
-        for spine in ax1.spines.values():
-            spine.set_visible(False)
-
-        # ============================================================
-        # BAR CHART 2 — SHOT STOPPING (WITHOUT Shot Stopping%)
-        # ============================================================
-        shot_vals = [safe_val(gk_row90[m]) for m in shot_metrics]
-        shot_pct = [safe_val(gk_rowpct[m]) for m in shot_metrics]
-
-        ax2.set_facecolor(bg)
-        ax2.barh(shot_metrics, shot_pct)
-
-        ax2.set_xlim(0, 100)
-        ax2.set_title("Shot Stopping", fontsize=14, fontweight="bold", color=text)
-        ax2.axvline(50, color=blue, linestyle="--", linewidth=2)
-
-        # Show RAW numbers ONLY for this chart (your request)
-        for i, (pct, raw) in enumerate(zip(shot_pct, shot_vals)):
-            ax2.text(pct + 1, i, f"{raw:.2f}", va="center", fontsize=10, color=text)
-
-        ax2.tick_params(colors=text)
-        for spine in ax2.spines.values():
-            spine.set_visible(False)
-
-        # ============================================================
-        # PIZZA RADAR SECTION
-        # ============================================================
-        ax3.set_facecolor(bg)
-        ax3.axis("off")
-
-        def draw_pizza(ax, metrics, title):
-            values = [safe_val(gk_rowpct[m]) for m in metrics]
-
-            baker = PyPizza(
-                params=metrics,
-                background_color=bg,
-                straight_line_color="white",
-                straight_line_lw=1,
-                last_circle_color="black",
-                last_circle_lw=1.5,
-                other_circle_color="gray",
-                other_circle_lw=1,
-                inner_circle_size=20
-            )
-
-            baker.make_pizza(
-                values,
-                figsize=(6, 6),
-                ax=ax,
-                slice_colors=["black"] * len(values),
-                value_colors=["white"] * len(values),
-                value_bck_colors=["black"] * len(values),
-                kwargs_slices=dict(edgecolor="white", linewidth=1),
-                kwargs_params=dict(color=text, fontsize=9),
-                kwargs_values=dict(color="white", fontsize=9, fontweight="bold"),
-            )
-
-            ax.set_title(title, fontsize=14, fontweight="bold", color=text, pad=15)
-
-        if radar_type == "Full GK Radar":
-            draw_pizza(ax3, full_radar_metrics, "GOALKEEPER PERCENTILE PROFILE")
-
+        # -------- PICK RADAR METRICS --------
+        if radar_choice == "Full GK Radar":
+            radar_metrics = gk_radar_full
+            radar_title = "GOALKEEPER PERCENTILE PROFILE"
+        elif radar_choice == "Shot Stopping + Sweeping":
+            radar_metrics = gk_radar_shotstop
+            radar_title = "SHOT STOPPING + SWEEPING PROFILE"
         else:
-            # Create 2 smaller axes inside ax3 area
-            ax3.remove()
+            radar_metrics = gk_radar_distribution
+            radar_title = "DISTRIBUTION + DECISION PROFILE"
 
-            ax_r1 = fig.add_subplot(gs[0, 2])
-            ax_r2 = fig.add_subplot(gs[1, 2])
+        radar_values = [float(gk_pct_row[m]) for m in radar_metrics]
 
-            for a in [ax_r1, ax_r2]:
-                a.set_facecolor(bg)
-                a.axis("off")
+        # -------- FIGURE SETUP --------
+        fig = plt.figure(figsize=(16, 9), facecolor=BG)
+        gs = fig.add_gridspec(2, 3, width_ratios=[1.2, 1.2, 1.6], hspace=0.45, wspace=0.18)
 
-            draw_pizza(ax_r1, radar_1, "Shot Stopping / Volume")
-            draw_pizza(ax_r2, radar_2, "Claiming / Sweeping / Risk")
+        # =============================================================================
+        # SHOT STOPPING % BAR CHART (REMOVE Shot Stopping% metric)
+        # =============================================================================
+        ax1 = fig.add_subplot(gs[0, 0:2])
+        ax1.set_facecolor(BG)
 
-        plt.tight_layout()
+        shot_labels = ["Save%", "xSv%"]  # ✅ Shot Stopping% REMOVED
+        shot_vals = [float(gk_row[m]) for m in shot_labels]
+
+        y = np.arange(len(shot_labels))
+        ax1.barh(y, shot_vals, color="black")
+
+        # Value labels
+        for i, v in enumerate(shot_vals):
+            ax1.text(v + 1, i, f"{v:.1f}%", va="center", ha="left", fontsize=12, color=TEXT)
+
+        ax1.set_yticks(y)
+        ax1.set_yticklabels(shot_labels, color=TEXT, fontsize=12)
+        ax1.set_xlim(0, 100)
+        ax1.invert_yaxis()
+        ax1.set_title("SHOT STOPPING %", color=TEXT, fontweight="bold")
+        ax1.grid(axis="x", linestyle="--", alpha=0.3, color="black")
+        ax1.spines[:].set_visible(False)
+        ax1.tick_params(left=False, bottom=False, colors=TEXT)
+
+        # =============================================================================
+        # DISTRIBUTION + DECISION MAKING BAR CHART
+        # =============================================================================
+        ax2 = fig.add_subplot(gs[1, 0:2])
+        ax2.set_facecolor(BG)
+
+        dist_labels = ["Passing%", "Pass into Danger%", "Pass into Pressure%", "Positive Outcome%"]
+        dist_vals = [float(gk_row[m]) for m in dist_labels]
+
+        y2 = np.arange(len(dist_labels))
+        ax2.barh(y2, dist_vals, color="black")
+
+        for i, v in enumerate(dist_vals):
+            ax2.text(v + 1, i, f"{v:.1f}%", va="center", ha="left", fontsize=12, color=TEXT)
+
+        ax2.set_yticks(y2)
+        ax2.set_yticklabels(dist_labels, color=TEXT, fontsize=12)
+        ax2.set_xlim(0, 100)
+        ax2.invert_yaxis()
+        ax2.set_title("DISTRIBUTION + DECISION MAKING %", color=TEXT, fontweight="bold")
+        ax2.grid(axis="x", linestyle="--", alpha=0.3, color="black")
+        ax2.spines[:].set_visible(False)
+        ax2.tick_params(left=False, bottom=False, colors=TEXT)
+
+        # =============================================================================
+        # PIZZA RADAR (FIXED)
+        # =============================================================================
+        ax3 = fig.add_subplot(gs[:, 2], projection="polar")
+        ax3.set_facecolor(BG)
+        ax3.set_position([0.60, 0.12, 0.38, 0.80])
+
+        baker = PyPizza(
+            params=radar_metrics,
+            min_range=[0] * len(radar_metrics),
+            max_range=[100] * len(radar_metrics),
+            background_color=BG,
+            straight_line_color="white",
+            last_circle_color="black",
+            other_circle_lw=1,
+            inner_circle_size=10  # ✅ prevents the rorigin error
+        )
+
+        baker.make_pizza(
+            radar_values,
+            ax=ax3,
+            figsize=(7, 7),
+            kwargs_slices=dict(facecolor="black", edgecolor="black", linewidth=1),
+            kwargs_params=dict(color=TEXT, fontsize=9),
+            kwargs_values=dict(
+                color=TEXT,
+                fontsize=9,
+                bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5)
+            )
+        )
+
+        ax3.text(
+            0.5,
+            -0.08,
+            radar_title,
+            transform=ax3.transAxes,
+            ha="center",
+            va="center",
+            fontsize=12,
+            fontweight="bold",
+            color=TEXT
+        )
+
+        # =============================================================================
+        # TITLE + SUBTITLE (HEIGHT INCLUDED)
+        # =============================================================================
+        name = gk_row["Name"]
+        team = gk_row["Team"]
+        nation = gk_row["Nationality"]
+        age = int(gk_row["Minutes"] * 0 + gk_row["Minutes"] * 0 + gk_row["Minutes"] * 0)  # dummy fallback if needed
+
+        # Height (blank if missing)
+        height = ""
+        if "Height" in gk_row.index and pd.notna(gk_row["Height"]):
+            height = str(gk_row["Height"])
+
+        fig.text(
+            0.05,
+            0.965,
+            f"{name.upper()}",
+            fontsize=50,
+            fontproperties=title_font.prop,
+            ha="left",
+            va="center",
+            color=TEXT
+        )
+
+        subtitle_right = f"{team} | {nation}"
+        if height != "":
+            subtitle_right += f"\nHeight: {height}"
+        else:
+            subtitle_right += "\n"
+
+        fig.text(
+            1,
+            0.965,
+            subtitle_right,
+            fontsize=18,
+            fontweight="bold",
+            ha="right",
+            va="center",
+            color=TEXT
+        )
+
+        st.pyplot(fig)
         return fig
 
-    # ---------------- DRAW + SHOW ----------------
+    # ---------------- DRAW GK DASHBOARD ----------------
     fig_gk = draw_gk_dashboard(selected_gk, radar_type)
-    st.pyplot(fig_gk)
+
+    if st.button("💾 Save GK PNG"):
+        filename = f"{selected_gk.replace(' ', '_')}_GK_Dashboard.png"
+        save_path = os.path.join(OUTPUT_FOLDER, filename)
+        fig_gk.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig_gk.get_facecolor())
+        st.success(f"Saved: {save_path}")
