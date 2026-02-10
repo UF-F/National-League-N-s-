@@ -409,10 +409,7 @@ with tab2:
 
 
 # =============================================================================
-# GOALKEEPER DASHBOARD TAB
-# =============================================================================
-# =============================================================================
-# GOALKEEPER DASHBOARD TAB (UPDATED: 2 RADARS + HEIGHT)
+# GOALKEEPER DASHBOARD TAB (RADAR MODE DROPDOWN + HEIGHT)
 # =============================================================================
 with tab3:
     st.sidebar.header("Goalkeeper Dashboard Settings")
@@ -425,124 +422,72 @@ with tab3:
 
     selected_gk = st.sidebar.selectbox("Choose Goalkeeper", gk_players)
 
-    # ---------------- GK METRIC SPLIT ----------------
+    # ---------------- GK METRIC GROUPS ----------------
+    gk_all_metrics = [
+        "Goals Conceded", "PSxG Faced", "GSAA", "Save%", "xSv%", "Shot Stopping%",
+        "xG Faced", "Shots Faced", "Shots Faced OT%", "All Shots Faced",
+        "Passing%", "Pass Length", "GK Aggressive Dist.", "Claims%",
+        "Positioning Error", "Penalties Faced", "Penalties Conceded",
+        "Pass into Danger%", "Pass into Pressure%",
+        "Positive Outcome", "Positive Outcome%"
+    ]
+
     gk_shotstop_metrics = [
-        "Goals Conceded",
-        "PSxG Faced",
-        "GSAA",
-        "Save%",
-        "xSv%",
-        "Shot Stopping%",
-        "xG Faced",
-        "Shots Faced",
-        "Shots Faced OT%",
-        "All Shots Faced"
+        "Goals Conceded", "PSxG Faced", "GSAA", "Save%", "xSv%", "Shot Stopping%",
+        "xG Faced", "Shots Faced", "Shots Faced OT%", "All Shots Faced"
     ]
 
     gk_dist_metrics = [
-        "Passing%",
-        "Pass Length",
-        "GK Aggressive Dist.",
-        "Claims%",
-        "Positioning Error",
-        "Penalties Faced",
-        "Penalties Conceded",
-        "Pass into Danger%",
-        "Pass into Pressure%",
-        "Positive Outcome",
-        "Positive Outcome%"
+        "Passing%", "Pass Length", "GK Aggressive Dist.", "Claims%",
+        "Positioning Error", "Penalties Faced", "Penalties Conceded",
+        "Pass into Danger%", "Pass into Pressure%",
+        "Positive Outcome", "Positive Outcome%"
     ]
+
+    # ---------------- DROPDOWN OPTION ----------------
+    radar_mode = st.sidebar.selectbox(
+        "Choose Radar Type",
+        ["Full GK Radar", "Shot-Stopping Radar", "Distribution + Command Radar"]
+    )
+
+    # Pick metrics based on mode
+    if radar_mode == "Full GK Radar":
+        radar_metrics = gk_all_metrics
+    elif radar_mode == "Shot-Stopping Radar":
+        radar_metrics = gk_shotstop_metrics
+    else:
+        radar_metrics = gk_dist_metrics
 
     def draw_gk_dashboard(gk_name):
         row90 = gk_df[gk_df["Name"] == gk_name].iloc[0]
         rowpct = gk_pct_df[gk_pct_df["Name"] == gk_name].iloc[0]
 
-        shot_vals = [rowpct[m] for m in gk_shotstop_metrics]
-        dist_vals = [rowpct[m] for m in gk_dist_metrics]
+        values = [rowpct[m] for m in radar_metrics]
 
-        fig = plt.figure(figsize=(16, 9), facecolor=BG)
+        fig, ax = plt.subplots(figsize=(10, 10), facecolor=BG)
+        ax.set_facecolor(BG)
 
-        # Layout: 2 radars side-by-side
-        gs = fig.add_gridspec(
-            1, 2,
-            width_ratios=[1, 1],
-            wspace=0.25
-        )
-
-        # ---------------- RADAR 1: SHOT STOPPING ----------------
-        ax1 = fig.add_subplot(gs[0, 0], polar=True)
-        ax1.set_facecolor(BG)
-
-        baker1 = PyPizza(
-            params=gk_shotstop_metrics,
-            min_range=[0] * len(gk_shotstop_metrics),
-            max_range=[100] * len(gk_shotstop_metrics),
+        baker = PyPizza(
+            params=radar_metrics,
+            min_range=[0] * len(radar_metrics),
+            max_range=[100] * len(radar_metrics),
             background_color=BG,
             straight_line_color="white",
             last_circle_color="black",
             other_circle_lw=1
         )
 
-        baker1.make_pizza(
-            shot_vals,
-            ax=ax1,
-            figsize=(7, 7),
+        baker.make_pizza(
+            values,
+            ax=ax,
+            figsize=(10, 10),
             kwargs_slices=dict(facecolor="black", edgecolor="black", linewidth=1),
-            kwargs_params=dict(color=TEXT, fontsize=9),
+            kwargs_params=dict(color=TEXT, fontsize=10),
             kwargs_values=dict(
                 color=TEXT,
-                fontsize=9,
+                fontsize=10,
                 bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5)
             )
-        )
-
-        ax1.text(
-            0.5, -0.12,
-            "SHOT-STOPPING",
-            transform=ax1.transAxes,
-            ha="center",
-            va="center",
-            fontsize=13,
-            fontweight="bold",
-            color=TEXT
-        )
-
-        # ---------------- RADAR 2: DISTRIBUTION + COMMAND ----------------
-        ax2 = fig.add_subplot(gs[0, 1], polar=True)
-        ax2.set_facecolor(BG)
-
-        baker2 = PyPizza(
-            params=gk_dist_metrics,
-            min_range=[0] * len(gk_dist_metrics),
-            max_range=[100] * len(gk_dist_metrics),
-            background_color=BG,
-            straight_line_color="white",
-            last_circle_color="black",
-            other_circle_lw=1
-        )
-
-        baker2.make_pizza(
-            dist_vals,
-            ax=ax2,
-            figsize=(7, 7),
-            kwargs_slices=dict(facecolor="black", edgecolor="black", linewidth=1),
-            kwargs_params=dict(color=TEXT, fontsize=9),
-            kwargs_values=dict(
-                color=TEXT,
-                fontsize=9,
-                bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5)
-            )
-        )
-
-        ax2.text(
-            0.5, -0.12,
-            "DISTRIBUTION + COMMAND",
-            transform=ax2.transAxes,
-            ha="center",
-            va="center",
-            fontsize=13,
-            fontweight="bold",
-            color=TEXT
         )
 
         # ---------------- TITLE + SUBTITLE ----------------
@@ -553,11 +498,10 @@ with tab3:
         age = row90.get("Age", "")
         height = row90.get("Height", "")
 
-        # Safe formatting (blank if missing)
+        # Safe formatting
         age_txt = f"{int(age)}" if pd.notna(age) and str(age).strip() != "" else ""
         height_txt = f"{height}" if pd.notna(height) and str(height).strip() != "" else ""
 
-        # Build subtitle line
         subtitle_parts = [team, nation]
         if age_txt != "":
             subtitle_parts.append(age_txt)
@@ -567,8 +511,7 @@ with tab3:
         subtitle = " | ".join([p for p in subtitle_parts if str(p).strip() != ""])
 
         fig.text(
-            0.05,
-            0.96,
+            0.05, 0.97,
             f"{str(name).upper()}",
             fontsize=50,
             fontproperties=title_font.prop,
@@ -578,12 +521,21 @@ with tab3:
         )
 
         fig.text(
-            0.98,
-            0.96,
+            0.98, 0.97,
             subtitle,
             fontsize=18,
             fontweight="bold",
             ha="right",
+            va="center",
+            color=TEXT
+        )
+
+        fig.text(
+            0.5, 0.04,
+            radar_mode.upper(),
+            fontsize=14,
+            fontweight="bold",
+            ha="center",
             va="center",
             color=TEXT
         )
