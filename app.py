@@ -10,10 +10,8 @@ st.set_page_config(page_title="National League South Dashboard 25/26", layout="w
 
 # ---------------- FILE PATHS ----------------
 TEAM_FILE = "League_Team_Stats (5).csv"
-
 PLAYER_FILE = "Daggers (Per90).csv"
 PLAYER_PCT_FILE = "Daggers (Percentile).csv"
-
 GK_FILE = "GK (Per90).csv"
 GK_PCT_FILE = "GK (Percentile).csv"
 
@@ -44,7 +42,6 @@ title_font = FontManager(
 # ---------------- THEME ----------------
 BG = "#ede8d0"
 TEXT = "black"
-
 GREEN = "#008000"
 RED = "#992514"
 LEAGUE_MARKER = "#000000"
@@ -82,6 +79,7 @@ def detect_role(primary_pos, secondary_pos=None):
 
     return "Midfield"
 
+
 # ---------------- TEAM DASHBOARD METRICS ----------------
 team_metrics = [
     "Goals", "NP xG", "Shots", "SP xG", "Corner xG",
@@ -110,48 +108,24 @@ radar_metrics = {
                   "Counterpress Regains","Turnovers","Dispossessed"]
 }
 
-# ---------------- GK DASHBOARD METRICS ----------------
-gk_radar_metrics = [
-    "Goals Conceded",
-    "PSxG Faced",
-    "GSAA",
-    "Save%",
-    "xSv%",
-    "Shot Stopping%",
-    "xG Faced",
-    "Shots Faced",
-    "Shots Faced OT%",
-    "All Shots Faced",
-    "Positioning Error",
-    "Penalties Faced",
-    "Penalties Conceded",
-    "GK Aggressive Dist.",
-    "Claims%",
-    "Pass into Danger%",
-    "Pass into Pressure%",
-    "Positive Outcome",
-    "Positive Outcome%"
-]
-
 # ---------------- PAGE TITLE + DESCRIPTION ----------------
 st.title("🏆 National League South Dashboard 25/26")
 
 st.write("""
-This dashboard provides team-level percentile comparisons vs league average and individual player percentile profiles across key performance metrics, using official StatsBomb-style event data for the 2025/26 National League South season.
+This dashboard provides team-level percentile comparisons vs league average and individual player percentile profiles across key performance metrics.
 
 **How to use:**
-- Select **Team Dashboard**, **Player Dashboard** or **Goalkeeper Dashboard** using the tabs above.
-- Use the dropdown menus to choose a team and player.
-- Team charts compare percentile ranks vs league average.
-- Player profiles show percentile performance by role.
+- Use the tabs for Team / Player / GK
+- Use the dropdowns in the sidebar
+- Charts show percentiles vs league average
 """)
 
-# ---------------- TABS ----------------
+# ---------------- TABS (ONLY ONCE) ----------------
 tab1, tab2, tab3 = st.tabs(["📊 Team Dashboard", "👤 Player Dashboard", "🧤 Goalkeeper Dashboard"])
 
 
 # =============================================================================
-# TEAM DASHBOARD TAB
+# TAB 1 — TEAM DASHBOARD
 # =============================================================================
 with tab1:
     st.sidebar.header("Team Dashboard Settings")
@@ -165,23 +139,25 @@ with tab1:
 
         colors = [GREEN if t >= l else RED for t, l in zip(team_values, league_values)]
 
-        fig, ax = plt.subplots(figsize=(13, 7))
+        # ✅ Compact size
+        fig, ax = plt.subplots(figsize=(10, 6.5))
         fig.patch.set_facecolor(BG)
         ax.set_facecolor(BG)
 
         y = np.arange(len(team_metrics))
+
         ax.barh(
             y,
             team_values,
-            height=0.52,
+            height=0.45,
             color=colors,
             edgecolor="black",
-            linewidth=0.8
+            linewidth=0.7
         )
 
         # League average markers
         for i, avg in enumerate(league_values):
-            ax.plot(avg, i, marker="D", markersize=7, color=LEAGUE_MARKER, zorder=3)
+            ax.plot(avg, i, marker="D", markersize=6, color=LEAGUE_MARKER, zorder=3)
 
         # Value labels
         for i, val in enumerate(team_values):
@@ -192,12 +168,13 @@ with tab1:
                 va="center",
                 ha="left",
                 color=TEXT,
-                fontsize=10
+                fontsize=9
             )
 
         ax.set_yticks(y)
-        ax.set_yticklabels(team_metrics, color=TEXT, fontsize=11)
+        ax.set_yticklabels(team_metrics, color=TEXT, fontsize=9)
         ax.invert_yaxis()
+
         ax.tick_params(axis="x", colors=TEXT)
         ax.tick_params(axis="y", length=0)
 
@@ -206,13 +183,14 @@ with tab1:
         for spine in ax.spines.values():
             spine.set_visible(False)
 
+        # ✅ Your heading style
         ax.text(
             -0.15,
             1.20,
             f"{selected_team.upper()} | TEAM ANALYSIS",
             transform=ax.transAxes,
             color=TEXT,
-            fontsize=24,
+            fontsize=22,
             fontweight="bold"
         )
 
@@ -223,12 +201,12 @@ with tab1:
             "Data: Statsbomb | Graphic: @Neil_barretto",
             transform=ax.transAxes,
             color=TEXT,
-            fontsize=11
+            fontsize=10
         )
 
-        ax.text(0.15, 1.05, "■ Above League Avg", transform=ax.transAxes, color=GREEN, fontsize=10)
-        ax.text(0.35, 1.05, "■ Below League Avg", transform=ax.transAxes, color=RED, fontsize=10)
-        ax.text(0.60, 1.05, "♦ League Average", transform=ax.transAxes, color=LEAGUE_MARKER, fontsize=10)
+        ax.text(0.15, 1.05, "■ Above League Avg", transform=ax.transAxes, color=GREEN, fontsize=9)
+        ax.text(0.35, 1.05, "■ Below League Avg", transform=ax.transAxes, color=RED, fontsize=9)
+        ax.text(0.60, 1.05, "♦ League Average", transform=ax.transAxes, color=LEAGUE_MARKER, fontsize=9)
 
         return fig
 
@@ -243,7 +221,7 @@ with tab1:
 
 
 # =============================================================================
-# PLAYER DASHBOARD TAB
+# TAB 2 — PLAYER DASHBOARD
 # =============================================================================
 with tab2:
     st.sidebar.header("Player Dashboard Settings")
@@ -304,7 +282,6 @@ with tab2:
 
         bars = ax2.barh(y2, comp_vals, color="black")
 
-        # --- ADD VALUES ON BARS (ONLY HERE) ---
         for i, b in enumerate(bars):
             val = comp_vals[i]
             ax2.text(
@@ -327,7 +304,7 @@ with tab2:
         ax2.tick_params(left=False, bottom=False, colors=TEXT)
 
         # -------- PIZZA CHART --------
-        ax3 = fig.add_subplot(gs[:, 2], polar=True)
+        ax3 = fig.add_subplot(gs[:, 2])
         ax3.set_facecolor(BG)
         ax3.set_position([0.60, 0.12, 0.38, 0.80])
 
@@ -409,21 +386,7 @@ with tab2:
 
 
 # =============================================================================
-# GOALKEEPER DASHBOARD TAB (RADAR MODE DROPDOWN + HEIGHT)
-# =============================================================================
-
-# =============================================================================
-# GOALKEEPER DASHBOARD TAB
-# =============================================================================
-
-
-# =============================================================================
-# GOALKEEPER DASHBOARD TAB
-# =============================================================================
-tab1, tab2, tab3 = st.tabs(["📊 Team Dashboard", "👤 Player Dashboard", "🧤 GK Dashboard"])
-
-# =============================================================================
-# GOALKEEPER DASHBOARD TAB
+# TAB 3 — GOALKEEPER DASHBOARD
 # =============================================================================
 with tab3:
     st.sidebar.header("Goalkeeper Dashboard Settings")
@@ -441,7 +404,6 @@ with tab3:
         ["Full GK Radar", "Split GK Radar (2 charts)"]
     )
 
-    # ---------------- GK RADAR METRICS ----------------
     gk_radar_full = [
         "Goals Conceded",
         "PSxG Faced",
@@ -489,15 +451,48 @@ with tab3:
         "Penalties Conceded"
     ]
 
-    # ---------------- SAFE GET HEIGHT ----------------
     def safe_height(x):
-        if "Height" not in gk_df.columns:
-            return ""
         if pd.isna(x):
             return ""
         return str(x).strip()
 
-    # ---------------- DRAW GK DASHBOARD ----------------
+    def draw_pizza(ax, metrics, values, subtitle):
+        baker = PyPizza(
+            params=metrics,
+            min_range=[0] * len(metrics),
+            max_range=[100] * len(metrics),
+            background_color=BG,
+            straight_line_color="white",
+            last_circle_color="black",
+            other_circle_lw=1,
+            inner_circle_size=12
+        )
+
+        baker.make_pizza(
+            values,
+            ax=ax,
+            figsize=(7, 7),
+            kwargs_slices=dict(facecolor="black", edgecolor="black", linewidth=1),
+            kwargs_params=dict(color=TEXT, fontsize=8),
+            kwargs_values=dict(
+                color=TEXT,
+                fontsize=8,
+                bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5)
+            )
+        )
+
+        ax.text(
+            0.5,
+            -0.10,
+            subtitle,
+            transform=ax.transAxes,
+            ha="center",
+            va="center",
+            fontsize=12,
+            fontweight="bold",
+            color=TEXT
+        )
+
     def draw_gk_dashboard(gk_name, radar_choice):
         gk_row = gk_df[gk_df["Name"] == gk_name].iloc[0]
         gk_pct_row = gk_pct_df[gk_pct_df["Name"] == gk_name].iloc[0]
@@ -507,31 +502,18 @@ with tab3:
         nation = gk_row["Nationality"]
         height = safe_height(gk_row["Height"]) if "Height" in gk_row.index else ""
 
-        # ---------- FIG LAYOUT ----------
         fig = plt.figure(figsize=(16, 9), facecolor=BG)
 
         if radar_choice == "Full GK Radar":
-            gs = fig.add_gridspec(
-                2, 3,
-                width_ratios=[1.15, 1.15, 1.6],
-                hspace=0.45,
-                wspace=0.18
-            )
+            gs = fig.add_gridspec(2, 3, width_ratios=[1.15, 1.15, 1.6], hspace=0.45, wspace=0.18)
         else:
-            gs = fig.add_gridspec(
-                2, 4,
-                width_ratios=[1.1, 1.1, 1.3, 1.3],
-                hspace=0.45,
-                wspace=0.25
-            )
+            gs = fig.add_gridspec(2, 4, width_ratios=[1.1, 1.1, 1.3, 1.3], hspace=0.45, wspace=0.25)
 
-        # ---------------------------------------------------------------------
-        # 1) SHOT STOPPING BAR CHART (Shot Stopping% REMOVED)
-        # ---------------------------------------------------------------------
+        # --- SHOT STOPPING ---
         ax1 = fig.add_subplot(gs[0, 0:2])
         ax1.set_facecolor(BG)
 
-        shot_metrics = ["Save%", "xSv%"]  # ✅ removed Shot Stopping%
+        shot_metrics = ["Save%", "xSv%"]
         shot_vals = [float(gk_row[m]) for m in shot_metrics]
         y = np.arange(len(shot_metrics))
 
@@ -558,9 +540,7 @@ with tab3:
         ax1.spines[:].set_visible(False)
         ax1.tick_params(left=False, bottom=False, colors=TEXT)
 
-        # ---------------------------------------------------------------------
-        # 2) DISTRIBUTION BAR CHART
-        # ---------------------------------------------------------------------
+        # --- DISTRIBUTION ---
         ax2 = fig.add_subplot(gs[1, 0:2])
         ax2.set_facecolor(BG)
 
@@ -590,81 +570,33 @@ with tab3:
         ax2.spines[:].set_visible(False)
         ax2.tick_params(left=False, bottom=False, colors=TEXT)
 
-        # ---------------------------------------------------------------------
-        # Helper function for PyPizza (IMPORTANT: NOT polar=True)
-        # ---------------------------------------------------------------------
-        def draw_pizza(ax, metrics, values, subtitle):
-            baker = PyPizza(
-                params=metrics,
-                min_range=[0] * len(metrics),
-                max_range=[100] * len(metrics),
-                background_color=BG,
-                straight_line_color="white",
-                last_circle_color="black",
-                other_circle_lw=1,
-                inner_circle_size=12
-            )
-
-            baker.make_pizza(
-                values,
-                ax=ax,
-                figsize=(7, 7),
-                kwargs_slices=dict(facecolor="black", edgecolor="black", linewidth=1),
-                kwargs_params=dict(color=TEXT, fontsize=8),
-                kwargs_values=dict(
-                    color=TEXT,
-                    fontsize=8,
-                    bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5)
-                )
-            )
-
-            ax.text(
-                0.5,
-                -0.10,
-                subtitle,
-                transform=ax.transAxes,
-                ha="center",
-                va="center",
-                fontsize=12,
-                fontweight="bold",
-                color=TEXT
-            )
-
-        # ---------------------------------------------------------------------
-        # 3) RADARS
-        # ---------------------------------------------------------------------
+        # --- RADARS ---
         if radar_choice == "Full GK Radar":
             metrics = gk_radar_full
             values = [float(gk_pct_row[m]) for m in metrics]
 
-            ax3 = fig.add_subplot(gs[:, 2])  # ✅ NO polar=True
+            ax3 = fig.add_subplot(gs[:, 2])
             ax3.set_facecolor(BG)
             ax3.set_position([0.60, 0.12, 0.38, 0.80])
 
             draw_pizza(ax3, metrics, values, "GOALKEEPER PERCENTILE PROFILE")
 
         else:
-            # Split radar 1
             metrics1 = gk_radar_shotstop
             values1 = [float(gk_pct_row[m]) for m in metrics1]
 
             ax3 = fig.add_subplot(gs[:, 2])
             ax3.set_facecolor(BG)
-
             draw_pizza(ax3, metrics1, values1, "SHOT STOPPING PROFILE")
 
-            # Split radar 2
             metrics2 = gk_radar_distribution
             values2 = [float(gk_pct_row[m]) for m in metrics2]
 
             ax4 = fig.add_subplot(gs[:, 3])
             ax4.set_facecolor(BG)
-
             draw_pizza(ax4, metrics2, values2, "DISTRIBUTION / CONTROL PROFILE")
 
-        # ---------------------------------------------------------------------
-        # TITLE + SUBTITLE (Height instead of position)
-        # ---------------------------------------------------------------------
+        # --- TITLE ---
         fig.text(
             0.05,
             0.965,
@@ -679,8 +611,6 @@ with tab3:
         right_text = f"{team} | {nation}"
         if height != "":
             right_text += f"\nHeight: {height}"
-        else:
-            right_text += "\n"
 
         fig.text(
             1,
