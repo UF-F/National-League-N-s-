@@ -2,8 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import streamlit as st
-from mplsoccer import PyPizza, FontManager
-import os
+from mplsoccer import PyPizza
 
 st.set_page_config(page_title="Player Scout Dashboard", layout="wide")
 
@@ -23,14 +22,12 @@ pct_df.columns = pct_df.columns.str.strip()
 season_df.columns = season_df.columns.str.strip()
 
 # =============================================================================
-# ROLE LOGIC (SAME AS BEFORE)
+# ROLE LOGIC (OUTFIELD ONLY)
 # =============================================================================
 def detect_role(position):
     pos = str(position).lower()
 
-    if "keeper" in pos or "gk" in pos:
-        return "Goalkeeper"
-    elif any(k in pos for k in ["back", "cb", "def"]):
+    if any(k in pos for k in ["back", "cb", "def"]):
         return "Defensive"
     elif any(k in pos for k in ["wing", "st", "cf", "am"]):
         return "Attacking"
@@ -84,7 +81,7 @@ with tab1:
     st.pyplot(fig)
 
 # =============================================================================
-# TAB 2 – FULL PLAYER DASHBOARD (YOUR CURRENT STYLE)
+# TAB 2 – PLAYER RADAR
 # =============================================================================
 with tab2:
 
