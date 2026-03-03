@@ -119,3 +119,4 @@ with tab2:
     )
 
     st.pyplot(fig)
+
