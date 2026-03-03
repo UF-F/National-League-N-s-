@@ -15,8 +15,8 @@ st.set_page_config(page_title="National League South Dashboard 25/26", layout="w
 # =============================================================================
 TEAM_FILE = "League_Team_Stats (5).csv"
 
-PLAYER_FILE = "Daggers (Per90).csv"
-PLAYER_PCT_FILE = "Daggers (Percentile).csv"
+PLAYER_FILE = "National_league_players (Per90).csv"
+PLAYER_PCT_FILE = "National_league_players(Percentile).csv"
 
 GK_FILE = "GK (Per90).csv"
 GK_PCT_FILE = "GK (Percentile).csv"
@@ -662,3 +662,4 @@ with tab3:
         save_path = os.path.join(OUTPUT_FOLDER, filename)
         fig_gk.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig_gk.get_facecolor())
         st.success(f"Saved: {save_path}")
+
