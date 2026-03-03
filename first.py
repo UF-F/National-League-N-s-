@@ -9,7 +9,7 @@ st.set_page_config(page_title="Player Scout Dashboard", layout="wide")
 # =============================================================================
 # FILE PATHS
 # =============================================================================
-PER90_FILE = "National_league_players(Per90).csv"
+PER90_FILE = "National_league_players (Per90).csv"
 PERCENTILE_FILE = "National_league_players(Percentile).csv"
 SEASON_TOTAL_FILE = "National_league_players(Season total).csv"
 
@@ -119,4 +119,5 @@ with tab2:
     )
 
     st.pyplot(fig)
+
 
