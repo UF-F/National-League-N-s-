@@ -533,6 +533,13 @@ selected_comp_metrics = st.multiselect(
     options=comp_metric_options,
     default=safe_defaults
 )
+
+if len(selected_comp_metrics) < 3:
+    st.warning("Please select at least 3 metrics.")
+elif gk1 == gk2:
+    st.warning("Please select two different goalkeepers.")
+else:
+    def draw_gk_comparison(gk1_name, gk2_name, metrics, color1, color2):
     if len(selected_comp_metrics) < 3:
         st.warning("Please select at least 3 metrics.")
     elif gk1 == gk2:
