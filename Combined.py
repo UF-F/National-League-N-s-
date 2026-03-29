@@ -559,7 +559,7 @@ with tab4:
         fig, ax = baker.make_pizza(
             values1,
             compare_values=values2,
-            figsize=(8, 8),
+            figsize=(6, 6),
             color_blank_space=[BG] * len(metrics),
             blank_alpha=0.8,
             param_location=110,
