@@ -41,7 +41,7 @@ gk_df.columns = gk_df.columns.str.strip()
 gk_pct_df = pd.read_csv(GK_PCT_FILE)
 gk_pct_df.columns = gk_pct_df.columns.str.strip()
 
-gk_compare_df = pd.read_excel("Search_results_percentiles.xlsx", sheet_name="Percentile Rankings")
+gk_compare_df = pd.read_csv("Search_results_percentiles.csv")
 gk_compare_df.columns = gk_compare_df.columns.str.strip()
 
 # =============================================================================
@@ -126,36 +126,6 @@ radar_metrics = {
 
 
 # =============================================================================
-# GK DASHBOARD METRICS
-# =============================================================================
-gk_radar_full = [
-    "Goals Conceded", "PSxG Faced", "GSAA", "Save%", "xSv%",
-    "xG Faced", "Shots Faced", "Shots Faced OT%", "All Shots Faced",
-    "Positioning Error", "Penalties Faced", "Penalties Conceded",
-    "GK Aggressive Dist.", "Claims%", "Pass into Danger%",
-    "Pass into Pressure%", "Positive Outcome", "Positive Outcome%"
-]
-
-gk_radar_shotstop = [
-    "Goals Conceded", "PSxG Faced", "GSAA", "Save%", "xSv%",
-    "xG Faced", "Shots Faced", "Shots Faced OT%", "All Shots Faced", "Positioning Error"
-]
-
-gk_radar_distribution = [
-    "Passing%", "Pass Length", "Claims%", "GK Aggressive Dist.",
-    "Pass into Danger%", "Pass into Pressure%", "Positive Outcome",
-    "Positive Outcome%", "Penalties Faced", "Penalties Conceded"
-]
-
-# Metrics for GK comparison radar
-gk_comparison_metrics = [
-    "Goals Conceded", "Save%", "xSv%", "GSAA",
-    "Shots Faced", "xG Faced", "GK Aggressive Dist.",
-    "Claims%", "Passing%", "Positive Outcome%"
-]
-
-
-# =============================================================================
 # PAGE TITLE + DESCRIPTION
 # =============================================================================
 st.title("🏆 National League South Dashboard 25/26")
@@ -164,7 +134,7 @@ st.write("""
 This dashboard provides team-level percentile comparisons vs league average and individual player percentile profiles across key performance metrics, using official StatsBomb-style event data for the 2025/26 National League South season.
 
 **How to use:**
-- Select **Team Dashboard**, **Player Dashboard**, **Goalkeeper Dashboard** or **GK Comparison** using the tabs above.
+- Select **Team Dashboard**, **Player Dashboard** or **GK Comparison** using the tabs above.
 - Use the dropdown menus to choose a team and player.
 - Team charts compare percentile ranks vs league average.
 - Player profiles show percentile performance by role.
@@ -174,10 +144,9 @@ This dashboard provides team-level percentile comparisons vs league average and 
 # =============================================================================
 # TABS
 # =============================================================================
-tab1, tab2, tab3, tab4 = st.tabs([
+tab1, tab2, tab3 = st.tabs([
     "📊 Team Dashboard",
     "👤 Player Dashboard",
-    "🧤 Goalkeeper Dashboard",
     "🆚 GK Comparison"
 ])
 
@@ -364,154 +333,9 @@ with tab2:
 
 
 # =============================================================================
-# GOALKEEPER DASHBOARD TAB
-# =============================================================================
-with tab3:
-    st.sidebar.header("Goalkeeper Dashboard Settings")
-
-    gk_teams = sorted(gk_df["Team"].dropna().unique())
-    selected_gk_team = st.sidebar.selectbox("Choose GK Team", gk_teams)
-
-    gk_players = gk_df[gk_df["Team"] == selected_gk_team]["Name"].dropna().unique()
-    gk_players = sorted(gk_players)
-
-    selected_gk = st.sidebar.selectbox("Choose Goalkeeper", gk_players)
-
-    radar_type = st.sidebar.selectbox("Radar Style", ["Full GK Radar", "Split GK Radar (2 charts)"])
-
-    def safe_height(x):
-        if pd.isna(x):
-            return ""
-        return str(x).strip()
-
-    def draw_pizza(ax, metrics, values, subtitle):
-        baker = PyPizza(
-            params=metrics,
-            min_range=[0] * len(metrics),
-            max_range=[100] * len(metrics),
-            background_color=BG,
-            straight_line_color="white",
-            last_circle_color="black",
-            other_circle_lw=1,
-            inner_circle_size=12
-        )
-
-        baker.make_pizza(
-            values, ax=ax, figsize=(7, 7),
-            kwargs_slices=dict(facecolor="black", edgecolor="black", linewidth=1),
-            kwargs_params=dict(color=TEXT, fontsize=8),
-            kwargs_values=dict(color=TEXT, fontsize=8,
-                               bbox=dict(boxstyle="round,pad=0.2", fc=BG, ec="black", lw=0.5))
-        )
-
-        ax.text(0.5, -0.10, subtitle, transform=ax.transAxes,
-                ha="center", va="center", fontsize=12, fontweight="bold", color=TEXT)
-
-    def draw_gk_dashboard(gk_name, radar_choice):
-        gk_row = gk_df[gk_df["Name"] == gk_name].iloc[0]
-        gk_pct_row = gk_pct_df[gk_pct_df["Name"] == gk_name].iloc[0]
-
-        name = gk_row["Name"]
-        team = gk_row["Team"]
-        nation = gk_row["Nationality"]
-        height = safe_height(gk_row["Height"]) if "Height" in gk_row.index else ""
-
-        fig = plt.figure(figsize=(16, 9), facecolor=BG)
-
-        if radar_choice == "Full GK Radar":
-            gs = fig.add_gridspec(2, 3, width_ratios=[1.15, 1.15, 1.6], hspace=0.45, wspace=0.18)
-        else:
-            gs = fig.add_gridspec(2, 4, width_ratios=[1.1, 1.1, 1.3, 1.3], hspace=0.45, wspace=0.25)
-
-        ax1 = fig.add_subplot(gs[0, 0:2])
-        ax1.set_facecolor(BG)
-
-        shot_metrics = ["Save%", "xSv%"]
-        shot_vals = [float(gk_row[m]) for m in shot_metrics]
-        y = np.arange(len(shot_metrics))
-
-        bars = ax1.barh(y, shot_vals, color="black")
-        for i, b in enumerate(bars):
-            v = shot_vals[i]
-            ax1.text(v + 1.5, b.get_y() + b.get_height() / 2, f"{v:.1f}%",
-                     va="center", ha="left", fontsize=12, color=TEXT)
-
-        ax1.set_yticks(y)
-        ax1.set_yticklabels(shot_metrics, color=TEXT, fontsize=12)
-        ax1.set_xlim(0, 100)
-        ax1.invert_yaxis()
-        ax1.set_title("SHOT STOPPING %", color=TEXT, fontweight="bold")
-        ax1.grid(axis="x", linestyle="--", alpha=0.3, color="black")
-        ax1.spines[:].set_visible(False)
-        ax1.tick_params(left=False, bottom=False, colors=TEXT)
-
-        ax2 = fig.add_subplot(gs[1, 0:2])
-        ax2.set_facecolor(BG)
-
-        dist_metrics = ["Passing%", "Pass Length", "Pass into Danger%", "Pass into Pressure%"]
-        dist_vals = [float(gk_row[m]) for m in dist_metrics]
-        y2 = np.arange(len(dist_metrics))
-
-        bars2 = ax2.barh(y2, dist_vals, color="black")
-        for i, b in enumerate(bars2):
-            v = dist_vals[i]
-            ax2.text(v + (1.5 if v <= 95 else -3), b.get_y() + b.get_height() / 2,
-                     f"{v:.1f}", va="center", ha="left" if v <= 95 else "right",
-                     fontsize=12, color=TEXT)
-
-        ax2.set_yticks(y2)
-        ax2.set_yticklabels(dist_metrics, color=TEXT, fontsize=12)
-        ax2.invert_yaxis()
-        ax2.set_title("DISTRIBUTION & RISK", color=TEXT, fontweight="bold")
-        ax2.grid(axis="x", linestyle="--", alpha=0.3, color="black")
-        ax2.spines[:].set_visible(False)
-        ax2.tick_params(left=False, bottom=False, colors=TEXT)
-
-        if radar_choice == "Full GK Radar":
-            metrics = gk_radar_full
-            values = [float(gk_pct_row[m]) for m in metrics]
-            ax3 = fig.add_subplot(gs[:, 2], polar=True)
-            ax3.set_facecolor(BG)
-            ax3.set_position([0.60, 0.12, 0.38, 0.80])
-            draw_pizza(ax3, metrics, values, "GOALKEEPER PERCENTILE PROFILE")
-        else:
-            metrics1 = gk_radar_shotstop
-            values1 = [float(gk_pct_row[m]) for m in metrics1]
-            ax3 = fig.add_subplot(gs[:, 2], polar=True)
-            ax3.set_facecolor(BG)
-            draw_pizza(ax3, metrics1, values1, "SHOT STOPPING PROFILE")
-
-            metrics2 = gk_radar_distribution
-            values2 = [float(gk_pct_row[m]) for m in metrics2]
-            ax4 = fig.add_subplot(gs[:, 3], polar=True)
-            ax4.set_facecolor(BG)
-            draw_pizza(ax4, metrics2, values2, "DISTRIBUTION / CONTROL PROFILE")
-
-        fig.text(0.05, 0.965, f"{name.upper()}", fontsize=50,
-                 fontproperties=title_font.prop, ha="left", va="center", color=TEXT)
-
-        right_text = f"{team} | {nation}"
-        right_text += f"\nHeight: {height}" if height != "" else "\n"
-
-        fig.text(1, 0.965, right_text, fontsize=18, fontweight="bold",
-                 ha="right", va="center", color=TEXT)
-
-        st.pyplot(fig)
-        return fig
-
-    fig_gk = draw_gk_dashboard(selected_gk, radar_type)
-
-    if st.button("💾 Save GK PNG"):
-        filename = f"{selected_gk.replace(' ', '_')}_GK_Dashboard.png"
-        save_path = os.path.join(OUTPUT_FOLDER, filename)
-        fig_gk.savefig(save_path, dpi=300, bbox_inches="tight", facecolor=fig_gk.get_facecolor())
-        st.success(f"Saved: {save_path}")
-
-
-# =============================================================================
 # GK COMPARISON TAB
 # =============================================================================
-with tab4:
+with tab3:
     st.sidebar.header("GK Comparison Settings")
 
     st.subheader("🆚 Goalkeeper Comparison")
@@ -529,7 +353,7 @@ with tab4:
         gk2_color = st.color_picker("GK 2 Colour", "#00008B", key="gk2_color")
 
     comp_metric_options = [col for col in gk_compare_df.columns if col != "Player"]
-    
+
     default_metrics = [
         "Minutes played", "Save rate, %", "Clean sheets",
         "Conceded goals per 90", "Shots against per 90",
