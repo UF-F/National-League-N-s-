@@ -526,12 +526,13 @@ with tab4:
         gk2_color = st.color_picker("GK 2 Colour", "#00008B", key="gk2_color")
 
     comp_metric_options = gk_radar_full
-    selected_comp_metrics = st.multiselect(
-        "Select metrics to compare (min 3):",
-        options=comp_metric_options,
-        default=gk_comparison_metrics
-    )
+    safe_defaults = [m for m in gk_comparison_metrics if m in comp_metric_options]
 
+selected_comp_metrics = st.multiselect(
+    "Select metrics to compare (min 3):",
+    options=comp_metric_options,
+    default=safe_defaults
+)
     if len(selected_comp_metrics) < 3:
         st.warning("Please select at least 3 metrics.")
     elif gk1 == gk2:
