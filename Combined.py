@@ -528,100 +528,89 @@ with tab4:
     comp_metric_options = gk_radar_full
     safe_defaults = [m for m in gk_comparison_metrics if m in comp_metric_options]
 
-selected_comp_metrics = st.multiselect(
-    "Select metrics to compare (min 3):",
-    options=comp_metric_options,
-    default=safe_defaults
-)
+    selected_comp_metrics = st.multiselect(
+        "Select metrics to compare (min 3):",
+        options=comp_metric_options,
+        default=safe_defaults
+    )
 
-if len(selected_comp_metrics) < 3:
-    st.warning("Please select at least 3 metrics.")
-elif gk1 == gk2:
-    st.warning("Please select two different goalkeepers.")
-else:
     def draw_gk_comparison(gk1_name, gk2_name, metrics, color1, color2):
+        row1 = gk_pct_df[gk_pct_df["Name"] == gk1_name].iloc[0]
+        row2 = gk_pct_df[gk_pct_df["Name"] == gk2_name].iloc[0]
+
+        gk1_info = gk_df[gk_df["Name"] == gk1_name].iloc[0]
+        gk2_info = gk_df[gk_df["Name"] == gk2_name].iloc[0]
+
+        values1 = [int(float(row1[m])) for m in metrics]
+        values2 = [int(float(row2[m])) for m in metrics]
+
+        baker = PyPizza(
+            params=metrics,
+            min_range=[0] * len(metrics),
+            max_range=[100] * len(metrics),
+            background_color=BG,
+            straight_line_color="#000000",
+            last_circle_color="#222222",
+            last_circle_lw=2.5,
+            other_circle_lw=0,
+            other_circle_color="#222222",
+            straight_line_lw=1
+        )
+
+        fig, ax = baker.make_pizza(
+            values1,
+            compare_values=values2,
+            figsize=(8, 8),
+            color_blank_space=[BG] * len(metrics),
+            blank_alpha=0.8,
+            param_location=110,
+            kwargs_slices=dict(facecolor=color1, edgecolor="#000000", zorder=1, linewidth=1),
+            kwargs_compare=dict(facecolor=color2, edgecolor="#222222", zorder=3, linewidth=1),
+            kwargs_params=dict(color="#222222", fontsize=8, zorder=5, va="center"),
+            kwargs_values=dict(
+                color="#000000", fontsize=8, zorder=3,
+                bbox=dict(edgecolor="#000000", facecolor="#ffffff",
+                          boxstyle="round,pad=0.2", lw=1)
+            ),
+            kwargs_compare_values=dict(
+                color="#000000", fontsize=8, zorder=3,
+                bbox=dict(edgecolor="#000000", facecolor="#ffffff",
+                          boxstyle="round,pad=0.2", lw=1)
+            )
+        )
+
+        fig.text(0.08, 0.97, f"{gk1_name.upper()} vs {gk2_name.upper()}",
+                 fontsize=18, fontweight="bold", color="#222222", ha="left")
+
+        fig.text(0.08, 0.93,
+                 "Percentile Rank | National League South | Season 2025–26\n"
+                 "Data: @Statsbomb | Graphic: @Neil_barretto",
+                 fontsize=9, color="#222222", ha="left")
+
+        fig.text(0.08, 0.88,
+                 "Percentile rank shows how a player compares to others in the dataset.\n"
+                 "A score of 90 means the player performs better than 90% of players for that metric.",
+                 fontsize=7, color="#555555", ha="left", style="italic")
+
+        legend_elements = [
+            Patch(facecolor=color1, edgecolor="#000000", label=f"{gk1_name} ({gk1_info['Team']})"),
+            Patch(facecolor=color2, edgecolor="#000000", label=f"{gk2_name} ({gk2_info['Team']})")
+        ]
+        fig.legend(
+            handles=legend_elements,
+            loc="upper right",
+            bbox_to_anchor=(0.92, 0.97),
+            frameon=False,
+            fontsize=9
+        )
+
+        return fig
+
     if len(selected_comp_metrics) < 3:
         st.warning("Please select at least 3 metrics.")
     elif gk1 == gk2:
         st.warning("Please select two different goalkeepers.")
     else:
-        def draw_gk_comparison(gk1_name, gk2_name, metrics, color1, color2):
-            row1 = gk_pct_df[gk_pct_df["Name"] == gk1_name].iloc[0]
-            row2 = gk_pct_df[gk_pct_df["Name"] == gk2_name].iloc[0]
-
-            gk1_info = gk_df[gk_df["Name"] == gk1_name].iloc[0]
-            gk2_info = gk_df[gk_df["Name"] == gk2_name].iloc[0]
-
-            values1 = [int(float(row1[m])) for m in metrics]
-            values2 = [int(float(row2[m])) for m in metrics]
-
-            baker = PyPizza(
-                params=metrics,
-                min_range=[0] * len(metrics),
-                max_range=[100] * len(metrics),
-                background_color=BG,
-                straight_line_color="#000000",
-                last_circle_color="#222222",
-                last_circle_lw=2.5,
-                other_circle_lw=0,
-                other_circle_color="#222222",
-                straight_line_lw=1
-            )
-
-            fig, ax = baker.make_pizza(
-                values1,
-                compare_values=values2,
-                figsize=(8, 8),
-                color_blank_space=[BG] * len(metrics),
-                blank_alpha=0.8,
-                param_location=110,
-                kwargs_slices=dict(facecolor=color1, edgecolor="#000000", zorder=1, linewidth=1),
-                kwargs_compare=dict(facecolor=color2, edgecolor="#222222", zorder=3, linewidth=1),
-                kwargs_params=dict(color="#222222", fontsize=8, zorder=5, va="center"),
-                kwargs_values=dict(
-                    color="#000000", fontsize=8, zorder=3,
-                    bbox=dict(edgecolor="#000000", facecolor="#ffffff",
-                              boxstyle="round,pad=0.2", lw=1)
-                ),
-                kwargs_compare_values=dict(
-                    color="#000000", fontsize=8, zorder=3,
-                    bbox=dict(edgecolor="#000000", facecolor="#ffffff",
-                              boxstyle="round,pad=0.2", lw=1)
-                )
-            )
-
-            # Title
-            fig.text(0.08, 0.97,
-                     f"{gk1_name.upper()} vs {gk2_name.upper()}",
-                     fontsize=18, fontweight="bold", color="#222222", ha="left")
-
-            # Subtitle
-            fig.text(0.08, 0.93,
-                     f"Percentile Rank | National League South | Season 2025–26\n"
-                     f"Data: @Statsbomb | Graphic: @Neil_barretto",
-                     fontsize=9, color="#222222", ha="left")
-
-            # Methodology note
-            fig.text(0.08, 0.88,
-                     "Percentile rank shows how a player compares to others in the dataset.\n"
-                     "A score of 90 means the player performs better than 90% of players for that metric.",
-                     fontsize=7, color="#555555", ha="left", style="italic")
-
-            # Legend
-            legend_elements = [
-                Patch(facecolor=color1, edgecolor="#000000", label=f"{gk1_name} ({gk1_info['Team']})"),
-                Patch(facecolor=color2, edgecolor="#000000", label=f"{gk2_name} ({gk2_info['Team']})")
-            ]
-            fig.legend(
-                handles=legend_elements,
-                loc="upper right",
-                bbox_to_anchor=(0.92, 0.97),
-                frameon=False,
-                fontsize=9
-            )
-
-            return fig
-
         fig_comp = draw_gk_comparison(gk1, gk2, selected_comp_metrics, gk1_color, gk2_color)
         st.pyplot(fig_comp)
 
