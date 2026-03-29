@@ -514,7 +514,7 @@ with tab4:
     st.subheader("🆚 Goalkeeper Comparison")
     st.write("Compare two goalkeepers head-to-head using a percentile pizza chart.")
 
-    all_gk_names = sorted(gk_pct_df["Name"].dropna().unique())
+    all_gk_names = sorted(gk_compare_df["Player"].dropna().unique())
 
     col1, col2 = st.columns(2)
     with col1:
@@ -525,8 +525,15 @@ with tab4:
                             index=1 if len(all_gk_names) > 1 else 0, key="gk_comp_2")
         gk2_color = st.color_picker("GK 2 Colour", "#00008B", key="gk2_color")
 
-    comp_metric_options = gk_radar_full
-    safe_defaults = [m for m in gk_comparison_metrics if m in comp_metric_options]
+    comp_metric_options = [col for col in gk_compare_df.columns if col != "Player"]
+    
+    default_metrics = [
+        "Minutes played", "Save rate, %", "Clean sheets",
+        "Conceded goals per 90", "Shots against per 90",
+        "xG against per 90", "Prevented goals per 90",
+        "Exits per 90", "Aerial duels per 90"
+    ]
+    safe_defaults = [m for m in default_metrics if m in comp_metric_options]
 
     selected_comp_metrics = st.multiselect(
         "Select metrics to compare (min 3):",
@@ -535,11 +542,8 @@ with tab4:
     )
 
     def draw_gk_comparison(gk1_name, gk2_name, metrics, color1, color2):
-        row1 = gk_pct_df[gk_pct_df["Name"] == gk1_name].iloc[0]
-        row2 = gk_pct_df[gk_pct_df["Name"] == gk2_name].iloc[0]
-
-        gk1_info = gk_df[gk_df["Name"] == gk1_name].iloc[0]
-        gk2_info = gk_df[gk_df["Name"] == gk2_name].iloc[0]
+        row1 = gk_compare_df.set_index("Player").loc[gk1_name]
+        row2 = gk_compare_df.set_index("Player").loc[gk2_name]
 
         values1 = [int(float(row1[m])) for m in metrics]
         values2 = [int(float(row2[m])) for m in metrics]
@@ -593,16 +597,11 @@ with tab4:
                  fontsize=7, color="#555555", ha="left", style="italic")
 
         legend_elements = [
-            Patch(facecolor=color1, edgecolor="#000000", label=f"{gk1_name} ({gk1_info['Team']})"),
-            Patch(facecolor=color2, edgecolor="#000000", label=f"{gk2_name} ({gk2_info['Team']})")
+            Patch(facecolor=color1, edgecolor="#000000", label=gk1_name),
+            Patch(facecolor=color2, edgecolor="#000000", label=gk2_name)
         ]
-        fig.legend(
-            handles=legend_elements,
-            loc="upper right",
-            bbox_to_anchor=(0.92, 0.97),
-            frameon=False,
-            fontsize=9
-        )
+        fig.legend(handles=legend_elements, loc="upper right",
+                   bbox_to_anchor=(0.92, 0.97), frameon=False, fontsize=9)
 
         return fig
 
