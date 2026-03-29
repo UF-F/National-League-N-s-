@@ -41,6 +41,9 @@ gk_df.columns = gk_df.columns.str.strip()
 gk_pct_df = pd.read_csv(GK_PCT_FILE)
 gk_pct_df.columns = gk_pct_df.columns.str.strip()
 
+gk_compare_df = pd.read_excel("Search_results_percentiles.xlsx", sheet_name="Percentile Rankings")
+gk_compare_df.columns = gk_compare_df.columns.str.strip()
+
 # =============================================================================
 # FONT
 # =============================================================================
